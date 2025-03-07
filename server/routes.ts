@@ -93,7 +93,7 @@ ${resumeText}`;
       }
 
       // Generate career recommendations using Gemini
-      const prompt = `Based on the following career profile, suggest career paths and recommendations. Return only a JSON object with the following structure, nothing else: { "recommendedRoles": { "title": string, "industry": string, "matchPercentage": number, "requiredSkills": string[], "growthPotential": string, "requiredExperience": string }[] }
+      const prompt = `Based on the following career profile, suggest career paths and recommendations. Return only a JSON object with the following structure, nothing else: { "recommendedRoles": [ { "title": string, "industry": string, "matchPercentage": number, "requiredSkills": string[], "growthPotential": string, "requiredExperience": string } ] }
 
 Profile:
 ${JSON.stringify(profile, null, 2)}`;
