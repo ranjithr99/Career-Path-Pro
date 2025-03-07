@@ -94,7 +94,6 @@ ${resumeText}`;
 
       // Generate career recommendations using Gemini
       const prompt = `Based on the following career profile, suggest career paths and recommendations. Return only a JSON object with the following structure, nothing else: { "recommendedRoles": [ { "title": string, "industry": string, "matchPercentage": number, "requiredSkills": string[], "growthPotential": string, "requiredExperience": string } ] }
-
 Profile:
 ${JSON.stringify(profile, null, 2)}`;
 
@@ -120,6 +119,48 @@ ${JSON.stringify(profile, null, 2)}`;
       console.error("Error generating recommendations:", error);
       res.status(500).json({ 
         message: "Failed to generate recommendations",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/interview-prep/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const profile = await storage.getCareerProfile(userId);
+
+      if (!profile) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+
+      // Generate interview prep using Gemini
+      const prompt = `Based on the following career profile, generate interview preparation materials. Return only a JSON object with the following structure, nothing else: { "categories": [{ "name": string, "description": string, "questions": [{ "question": string, "sampleAnswer": string, "tips": string[], "commonMistakes": string[] }] }] }
+
+Profile:
+${JSON.stringify(profile, null, 2)}`;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+
+      // Extract JSON from the response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("Failed to parse AI response as JSON");
+      }
+
+      const parsedQuestions = JSON.parse(jsonMatch[0]);
+
+      // Update profile with interview prep
+      const updatedProfile = await storage.updateCareerProfile(profile.id, {
+        interviewPrep: parsedQuestions
+      });
+
+      res.json(updatedProfile);
+    } catch (error) {
+      console.error("Error generating interview prep:", error);
+      res.status(500).json({ 
+        message: "Failed to generate interview questions",
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }
