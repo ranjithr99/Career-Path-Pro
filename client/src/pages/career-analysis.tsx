@@ -16,27 +16,9 @@ interface RecommendedRole {
 
 export default function CareerAnalysis() {
   const [, setLocation] = useLocation();
-  const { data: profile, isLoading, error, refetch } = useQuery({
+  const { data: profile, isLoading, error } = useQuery({
     queryKey: ["/api/career-recommendations/1"], // TODO: Get user ID from auth
-    retry: 1,
   });
-
-  // If profile exists but recommendations don't exist yet, fetch them
-  React.useEffect(() => {
-    // If profile exists but no recommendations, trigger the recommendations API
-    if (profile && !profile.recommendations?.recommendedRoles) {
-      const generateRecommendations = async () => {
-        try {
-          await fetch("/api/career-recommendations/1");
-          // Wait a moment then refetch the data
-          setTimeout(() => refetch(), 1000);
-        } catch (e) {
-          console.error("Error generating recommendations:", e);
-        }
-      };
-      generateRecommendations();
-    }
-  }, [profile, refetch]);
 
   if (isLoading) {
     return (
@@ -53,18 +35,7 @@ export default function CareerAnalysis() {
         <Card className="w-full max-w-md">
           <CardContent className="p-6">
             <h2 className="text-xl font-semibold text-red-600 mb-2">Error Loading Recommendations</h2>
-            <p className="text-gray-600 mb-4">Failed to load career recommendations. Your profile may need analysis.</p>
-            <div className="flex justify-center">
-              <Button 
-                onClick={() => {
-                  fetch("/api/career-recommendations/1").then(() => {
-                    setTimeout(() => refetch(), 1000);
-                  });
-                }}
-              >
-                Generate Recommendations
-              </Button>
-            </div>
+            <p className="text-gray-600">Failed to load career recommendations. Please try again later.</p>
           </CardContent>
         </Card>
       </div>
@@ -72,44 +43,16 @@ export default function CareerAnalysis() {
   }
 
   const recommendedRoles = profile?.recommendations?.recommendedRoles || [];
-  const hasProfile = !!profile;
-  const processingRecommendations = hasProfile && !profile.recommendations?.recommendedRoles;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-8">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">Career Recommendations</h1>
 
-        {processingRecommendations ? (
-          <Card>
-            <CardContent className="p-6 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4" />
-              <p className="text-gray-600">Analyzing your profile and generating recommendations...</p>
-              <p className="text-gray-500 text-sm mt-2">This may take up to a minute</p>
-              <Button 
-                className="mt-4" 
-                variant="outline"
-                onClick={() => refetch()}
-              >
-                Check Status
-              </Button>
-            </CardContent>
-          </Card>
-        ) : recommendedRoles.length === 0 ? (
+        {recommendedRoles.length === 0 ? (
           <Card>
             <CardContent className="p-6">
-              <p className="text-gray-600 mb-4">No career recommendations available yet.</p>
-              <div className="flex justify-center">
-                <Button 
-                  onClick={() => {
-                    fetch("/api/career-recommendations/1").then(() => {
-                      setTimeout(() => refetch(), 1000);
-                    });
-                  }}
-                >
-                  Generate Recommendations
-                </Button>
-              </div>
+              <p className="text-gray-600">No career recommendations available yet. Please try uploading your resume again.</p>
             </CardContent>
           </Card>
         ) : (
