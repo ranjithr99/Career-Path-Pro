@@ -1,0 +1,83 @@
+Elevator Pitch
+
+A lot of students struggle with finding career paths that truly match their skills and interests, which costs them time, motivation, and long-term career satisfaction. So we built AI-Powered Career Pathway Advisor, a smart career guidance tool that helps them discover personalized career options and learning resources by analyzing their academic performance, skills, and hobbies using machine learning. Unlike traditional, one-size-fits-all career counseling, we provide hyper-personalized recommendations with actionable next steps to help students build a clear, tailored career plan.
+
+Project Description
+
+The AI-Powered Career Pathway Advisor is an AI-based career recommendation tool designed to help students find the most suitable career direction by analyzing their existing professional data. The tool uses GPT-4 and machine learning algorithms to extract information from resumes, LinkedIn profiles, and project repositories, matching this against current job market data to accurately recommend career options that align with market demand. The system provides comprehensive skill gap analysis, certification and course recommendations, and personalized action plans, enabling users to "favorite" target roles to receive tailored guidance. Unlike traditional career advice platforms, the tool features hyper-personalized recommendations that adapt to students' evolving preferences while matching the latest industry trends in real-time. The system includes an AI career mentor interface powered by GPT-4 that simulates personalized mentorship, providing intelligent responses to career questions, interview preparation guidance, and portfolio enhancement recommendations, all within a unified dashboard that replaces traditional career counseling with a data driven approach.
+Implementation Plan
+
+A complex implementation of a WebApp like this requires thorough planning and iteration. We have outlined the technologies used, features proposed and expected demonstration features below. The scope is subject to change due to any timeline or technology constraints as we develop. Our approach leverages GPT-4 and machine learning algorithms to analyze student documents (resumes, LinkedIn profiles, GitHub repositories) and match them against current job market data. The system will focus on creating a seamless experience from document upload through personalized recommendations, with interactive features allowing students to save preferred career paths and receive tailored upskilling guidance. We'll prioritize building a functional core system first, then enhance with additional features as time permits.
+Expected Technologies to use: 
+GPT-4 API: For resume parsing, profile analysis, and personalized recommendations
+Sentence-BERT: For semantic matching between extracted skills and job requirements
+LangChain: To build pipeline for document processing and information extraction
+Streamlit: For creating an interactive demo interface
+MongoDB: To store student profiles, job data, and personalization preferences
+Python-LinkedIn API: For extracting LinkedIn profile data
+PyPDF2 & DocX: For parsing various document formats
+Features & Methodology:
+1. Data Collection & Integration
+Job Market Database:
+Scrape job postings from APIs like LinkedIn, Indeed, and Glassdoor
+Integrate with database for comprehensive role descriptions
+Collect certification data from major providers (AWS, Google, Microsoft, etc.)
+Document Parsing Pipeline:
+Build extractors for resume formats (PDF, DOCX, plain text)
+Implement GitHub repository analyzer for coding projects
+Create LinkedIn profile parser using API access
+2. Profile Generation Engine
+Develop a unified profile schema to represent students' backgrounds
+Create NLP pipeline to extract key information from documents:
+Education history and academic achievements
+Work experience and internships
+Technical and soft skills
+Projects and their technologies
+Implement confidence scoring for extracted information
+3. Career Recommendation System
+Build multi-factor matching algorithm considering:
+Skills alignment with job requirements
+Experience level appropriate for roles
+Career progression trajectories
+Industry and domain preferences
+Implement personalization based on "favorited" jobs
+Create skill gap analysis comparing current profile to target roles
+4. Upskilling & Certification Advisor
+Develop recommendation engine for:
+Courses from platforms like Coursera, Udemy, and edX
+Certifications relevant to target roles
+Projects to build for portfolio enhancement
+Generate learning path timelines with priority ordering
+Provide cost and time investment estimates
+5. Mentorship Simulation
+User reasoning models to provide industry-specific career advice
+Implement conversational interface for career guidance
+Design templates for regular progress updates and recommendations
+Demo Concept Explanation:
+We will try to showcase all of the below features in our MVP. 
+Profile Import & Analysis:
+Live document upload of a resume.
+LinkedIn profile input with real-time parsing.
+GitHub repository linking for technical skills assessment.
+Visual representation of extracted profile with confidence scores. 
+
+
+Career Discovery Dashboard:
+Dynamically generated job recommendations with match percentages.
+Interactive filters for industry, location, and seniority level.
+"Save to favorites" functionality with instant recommendation refinement.
+Side-by-side comparison of different career paths.
+
+
+Personalized Growth Roadmap:
+Custom skill development plan based on favorited jobs
+Visual skill gap analysis with current vs. required proficiencies
+Interactive timeline for acquiring necessary skills and certifications
+Resource recommendations with direct links to courses and materials.
+
+
+Application Readiness Assessment:
+Resume enhancement suggestions for target roles
+Interview preparation guidance tailored to specific job requirements
+Portfolio improvement recommendations
+Networking strategy suggestions based on industry and location

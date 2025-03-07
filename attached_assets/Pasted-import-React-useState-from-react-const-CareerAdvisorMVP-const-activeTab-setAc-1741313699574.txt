@@ -1,0 +1,382 @@
+import React, { useState } from 'react';
+
+const CareerAdvisorMVP = () => {
+  const [activeTab, setActiveTab] = useState(0);
+  
+  const tabData = [
+    { name: "Profile Import" },
+    { name: "Career Discovery" },
+    { name: "Growth Roadmap" },
+    { name: "Application Readiness" }
+  ];
+  
+  return (
+    <div className="flex flex-col w-full min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="w-full p-4 bg-blue-600 text-white">
+        <div className="max-w-6xl mx-auto flex justify-between items-center">
+          <h1 className="text-2xl font-bold">AI-Powered Career Pathway Advisor</h1>
+          <div className="flex space-x-2">
+            <button className="px-4 py-2 bg-white text-blue-600 rounded-md font-medium">Sign In</button>
+            <button className="px-4 py-2 bg-blue-700 text-white rounded-md font-medium">Sign Up</button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-grow max-w-6xl mx-auto w-full p-4">
+        {/* Tabs */}
+        <div className="flex border-b">
+          {tabData.map((tab, index) => (
+            <button
+              key={index}
+              className={`px-4 py-2 font-medium ${activeTab === index ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+              onClick={() => setActiveTab(index)}
+            >
+              {tab.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Profile Import Tab */}
+        {activeTab === 0 && (
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold mb-4">Import Your Data</h2>
+              <div className="space-y-4">
+                <button className="w-full flex items-center justify-center space-x-2 p-3 border-2 border-dashed border-gray-300 rounded-lg hover:bg-gray-50">
+                  <span>Upload Resume</span>
+                </button>
+                <button className="w-full flex items-center justify-center space-x-2 p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100">
+                  <span>Connect LinkedIn</span>
+                </button>
+                <button className="w-full flex items-center justify-center space-x-2 p-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700">
+                  <span>Link GitHub</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6 md:col-span-2">
+              <h2 className="text-xl font-semibold mb-4">Your Profile</h2>
+              <div className="space-y-4">
+                <div className="border-b pb-2">
+                  <h3 className="font-medium text-gray-700">Skills</h3>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {['Python', 'JavaScript', 'React', 'Data Analysis', 'Machine Learning', 'SQL', 'AWS'].map(skill => (
+                      <span key={skill} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">{skill}</span>
+                    ))}
+                  </div>
+                </div>
+                <div className="border-b pb-2">
+                  <h3 className="font-medium text-gray-700">Experience</h3>
+                  <div className="mt-2">
+                    <div className="flex justify-between">
+                      <div>
+                        <p className="font-medium">Software Engineer</p>
+                        <p className="text-sm text-gray-600">Tech Company Inc.</p>
+                      </div>
+                      <span className="text-sm text-gray-500">2020 - Present</span>
+                    </div>
+                    <div className="flex justify-between mt-2">
+                      <div>
+                        <p className="font-medium">Junior Developer</p>
+                        <p className="text-sm text-gray-600">Startup Labs</p>
+                      </div>
+                      <span className="text-sm text-gray-500">2018 - 2020</span>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-medium text-gray-700">Education</h3>
+                  <div className="mt-2">
+                    <p className="font-medium">B.S. Computer Science</p>
+                    <p className="text-sm text-gray-600">University of Technology</p>
+                    <span className="text-sm text-gray-500">2014 - 2018</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Career Discovery Tab */}
+        {activeTab === 1 && (
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold mb-4">Job Filters</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
+                  <input 
+                    type="text" 
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                    placeholder="e.g. Data Scientist"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                  <input 
+                    type="text" 
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                    placeholder="e.g. San Francisco"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Experience Level</label>
+                  <select className="w-full p-2 border border-gray-300 rounded-md">
+                    <option>Entry Level</option>
+                    <option>Mid Level</option>
+                    <option>Senior</option>
+                  </select>
+                </div>
+                <button className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                  Apply Filters
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6 md:col-span-2">
+              <h2 className="text-xl font-semibold mb-4">Recommended Jobs</h2>
+              <div className="space-y-4">
+                {[
+                  {
+                    title: 'Senior Data Scientist',
+                    company: 'Tech Innovations Inc.',
+                    location: 'San Francisco, CA',
+                    match: 92,
+                    skills: ['Python', 'Machine Learning', 'SQL', 'Data Visualization']
+                  },
+                  {
+                    title: 'Full Stack Developer',
+                    company: 'Growth Startup',
+                    location: 'Remote',
+                    match: 87,
+                    skills: ['JavaScript', 'React', 'Node.js', 'MongoDB']
+                  },
+                  {
+                    title: 'ML Engineer',
+                    company: 'AI Solutions Corp',
+                    location: 'Boston, MA',
+                    match: 85,
+                    skills: ['Python', 'TensorFlow', 'AWS', 'ML Ops']
+                  }
+                ].map((job, idx) => (
+                  <div key={idx} className="border rounded-lg p-4 hover:shadow-md">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium text-lg">{job.title}</h3>
+                        <p className="text-gray-600">{job.company} • {job.location}</p>
+                      </div>
+                      <div className="bg-green-100 text-green-800 font-medium rounded-full px-3 py-1 text-sm">
+                        {job.match}% Match
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {job.skills.map(skill => (
+                        <span key={skill} className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">{skill}</span>
+                      ))}
+                    </div>
+                    <div className="mt-4 flex justify-between">
+                      <button className="px-3 py-1 border border-blue-600 text-blue-600 rounded">
+                        View Details
+                      </button>
+                      <button className="px-3 py-1 bg-blue-600 text-white rounded">
+                        Save Job
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Growth Roadmap Tab */}
+        {activeTab === 2 && (
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold mb-4">Your Target Role</h2>
+              <div className="space-y-4">
+                <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                  <h3 className="font-medium">Senior Data Scientist</h3>
+                  <p className="text-sm text-gray-600">Tech Innovations Inc.</p>
+                  <div className="mt-2 flex items-center">
+                    <div className="text-green-600 font-medium">92% Match</div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="font-medium text-gray-700">Skill Gap Analysis</h3>
+                  <div className="mt-2 space-y-2">
+                    <div>
+                      <div className="flex justify-between text-sm">
+                        <span>Python</span>
+                        <span>Expert</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                        <div className="bg-green-500 h-2 rounded-full" style={{ width: '95%' }}></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm">
+                        <span>Machine Learning</span>
+                        <span>Advanced</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                        <div className="bg-green-500 h-2 rounded-full" style={{ width: '80%' }}></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm">
+                        <span>MLOps</span>
+                        <span>Beginner</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                        <div className="bg-red-500 h-2 rounded-full" style={{ width: '35%' }}></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6 md:col-span-2">
+              <h2 className="text-xl font-semibold mb-4">Development Roadmap</h2>
+              <div className="space-y-6">
+                <div className="border-l-4 border-blue-500 pl-4">
+                  <h3 className="font-medium text-blue-600">AWS Cloud Practitioner Certification</h3>
+                  <p className="text-gray-600 mt-1">Learn cloud fundamentals to strengthen your infrastructure knowledge</p>
+                  <div className="mt-2 text-sm text-gray-500">Estimated time: 1-2 months</div>
+                  <button className="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                    Start Learning
+                  </button>
+                </div>
+                
+                <div className="border-l-4 border-gray-300 pl-4">
+                  <h3 className="font-medium text-gray-800">MLOps Specialization</h3>
+                  <p className="text-gray-600 mt-1">Master deployment and management of ML models in production</p>
+                  <div className="mt-2 text-sm text-gray-500">Estimated time: 2-3 months</div>
+                </div>
+                
+                <div className="border-l-4 border-gray-300 pl-4">
+                  <h3 className="font-medium text-gray-800">Advanced Deep Learning Projects</h3>
+                  <p className="text-gray-600 mt-1">Build a portfolio of complex ML projects to showcase expertise</p>
+                  <div className="mt-2 text-sm text-gray-500">Estimated time: 3-4 months</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Application Readiness Tab */}
+        {activeTab === 3 && (
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold mb-4">Application Readiness</h2>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <span className="ml-2">Resume</span>
+                  </div>
+                  <div className="bg-yellow-100 text-yellow-800 rounded-full px-2 py-0.5 text-xs">
+                    Needs Improvement
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <span className="ml-2">LinkedIn Profile</span>
+                  </div>
+                  <div className="bg-green-100 text-green-800 rounded-full px-2 py-0.5 text-xs">
+                    Good
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <span className="ml-2">GitHub Portfolio</span>
+                  </div>
+                  <div className="bg-red-100 text-red-800 rounded-full px-2 py-0.5 text-xs">
+                    Needs Work
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <span className="ml-2">Projects Portfolio</span>
+                  </div>
+                  <div className="bg-yellow-100 text-yellow-800 rounded-full px-2 py-0.5 text-xs">
+                    Needs Improvement
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <span className="ml-2">Certifications</span>
+                  </div>
+                  <div className="bg-red-100 text-red-800 rounded-full px-2 py-0.5 text-xs">
+                    Missing Key Certs
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6 md:col-span-2">
+              <h2 className="text-xl font-semibold mb-4">Improvement Suggestions</h2>
+              <div className="space-y-6">
+                <div className="border-b pb-4">
+                  <h3 className="font-medium text-lg">Resume Enhancement</h3>
+                  <div className="mt-2 space-y-2">
+                    <div>
+                      <p className="text-gray-800">✓ Quantify your achievements with specific metrics</p>
+                      <p className="text-sm text-gray-600">Example: "Improved system performance by 40%" instead of "Improved system performance"</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-800">✓ Highlight your ML projects more prominently</p>
+                      <p className="text-sm text-gray-600">Move your machine learning experience to the top section</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-b pb-4">
+                  <h3 className="font-medium text-lg">GitHub Portfolio</h3>
+                  <div className="mt-2 space-y-2">
+                    <div>
+                      <p className="text-gray-800">✓ Create comprehensive READMEs for your top projects</p>
+                      <p className="text-sm text-gray-600">Include project goals, technologies, and outcomes</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-800">✓ Develop a new MLOps project to showcase your skills</p>
+                      <p className="text-sm text-gray-600">Example: Build a CI/CD pipeline for model deployment</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-medium text-lg">Interview Preparation</h3>
+                  <div className="mt-2 space-y-2">
+                    <div>
+                      <p className="text-gray-800">✓ Practice these common ML interview questions:</p>
+                      <ul className="list-disc pl-5 mt-1 text-sm text-gray-600">
+                        <li>Explain the difference between bagging and boosting</li>
+                        <li>How would you handle imbalanced data?</li>
+                        <li>Describe your approach to feature selection</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* AI Assistant */}
+      <div className="fixed bottom-4 right-4">
+        <button className="bg-blue-600 hover:bg-blue-700 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default CareerAdvisorMVP;
