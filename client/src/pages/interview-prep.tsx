@@ -24,7 +24,7 @@ interface InterviewCategory {
 }
 
 export default function InterviewPrep() {
-  const { data: interviewData, isLoading, error } = useQuery({
+  const { data: profile, isLoading, error } = useQuery({
     queryKey: ["/api/interview-prep/1"], // TODO: Get user ID from auth
   });
 
@@ -49,7 +49,7 @@ export default function InterviewPrep() {
     );
   }
 
-  const categories: InterviewCategory[] = interviewData?.categories || [];
+  const categories: InterviewCategory[] = profile?.interviewPrep?.categories || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-8">

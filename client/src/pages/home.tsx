@@ -4,15 +4,37 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Github, Linkedin } from "lucide-react";
+import { Upload, Github, Linkedin, Lock, CheckCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { uploadCareerProfile } from "@/lib/openai";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Home() {
   const { register, handleSubmit, formState: { errors }, watch } = useForm();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const selectedFile = watch("resume");
+
+  const { data: profile } = useQuery({
+    queryKey: ["/api/career-recommendations/1"], // TODO: Get user ID from auth
+  });
+
+  const hasProfile = !!profile;
+
+  const features = [
+    {
+      title: "AI Career Analysis",
+      description: "Get personalized career path recommendations based on your skills and experience"
+    },
+    {
+      title: "Interview Preparation",
+      description: "Access AI-generated interview questions tailored to your target roles"
+    },
+    {
+      title: "Application Tips",
+      description: "Receive customized advice for resume optimization and application strategies"
+    }
+  ];
 
   const onSubmit = async (data: any) => {
     try {
@@ -50,9 +72,32 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <div className="max-w-4xl mx-auto pt-16 px-4">
-        <h1 className="text-4xl font-bold text-center mb-8">
+        <h1 className="text-4xl font-bold text-center mb-4">
           AI-Powered Career Pathway Advisor
         </h1>
+        <p className="text-center text-gray-600 mb-8">
+          Upload your resume to unlock personalized career insights and guidance
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          {features.map((feature, index) => (
+            <Card key={index} className={`transition-all ${hasProfile ? 'bg-white' : 'bg-gray-50'}`}>
+              <CardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  {hasProfile ? (
+                    <CheckCircle className="h-6 w-6 text-green-500 mt-1" />
+                  ) : (
+                    <Lock className="h-6 w-6 text-gray-400 mt-1" />
+                  )}
+                  <div>
+                    <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
+                    <p className="text-gray-600">{feature.description}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
         <Card className="mt-8">
           <CardContent className="pt-6">
@@ -113,8 +158,14 @@ export default function Home() {
               </div>
 
               <Button type="submit" className="w-full">
-                Start Career Analysis
+                {hasProfile ? "Update Career Profile" : "Start Career Analysis"}
               </Button>
+
+              {!hasProfile && (
+                <p className="text-sm text-gray-500 text-center mt-4">
+                  Upload your resume to unlock AI-powered career insights and personalized guidance
+                </p>
+              )}
             </form>
           </CardContent>
         </Card>
