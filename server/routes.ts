@@ -12,12 +12,15 @@ const upload = multer({
 
 // Initialize Google AI with Gemini model
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
-const model = genAI.getGenerativeModel({ model: "gemini-pro", generationConfig: {
-  temperature: 0.7,
-  topK: 40,
-  topP: 0.95,
-  maxOutputTokens: 1024,
-}});
+const model = genAI.getGenerativeModel({ 
+  model: "gemini-1.0-pro",  // Updated model name
+  safetySettings: [
+    {
+      category: "HARM_CATEGORY_HARASSMENT",
+      threshold: "BLOCK_MEDIUM_AND_ABOVE",
+    },
+  ],
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/career-profile", upload.single("resume"), async (req, res) => {
