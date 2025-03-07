@@ -12,7 +12,12 @@ const upload = multer({
 
 // Initialize Google AI with Gemini model
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+const model = genAI.getGenerativeModel({ model: "gemini-pro", generationConfig: {
+  temperature: 0.7,
+  topK: 40,
+  topP: 0.95,
+  maxOutputTokens: 1024,
+}});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/career-profile", upload.single("resume"), async (req, res) => {
