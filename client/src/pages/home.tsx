@@ -9,12 +9,23 @@ import { useLocation } from "wouter";
 import { uploadCareerProfile } from "@/lib/openai";
 
 export default function Home() {
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const { register, handleSubmit, formState: { errors }, watch } = useForm();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const selectedFile = watch("resume");
 
   const onSubmit = async (data: any) => {
     try {
+      if (!data.resume?.[0]) {
+        toast({
+          title: "Error",
+          description: "Please select a resume file",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log("Uploading file:", data.resume[0].name);
       const formData = new FormData();
       formData.append("resume", data.resume[0]);
       formData.append("linkedinUrl", data.linkedinUrl || '');
@@ -27,9 +38,10 @@ export default function Home() {
       });
       setLocation("/career-analysis");
     } catch (error) {
+      console.error("Upload error:", error);
       toast({
         title: "Error",
-        description: "Failed to upload career profile",
+        description: error instanceof Error ? error.message : "Failed to upload career profile",
         variant: "destructive",
       });
     }
@@ -47,16 +59,23 @@ export default function Home() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Upload Resume (PDF)
+                  Upload Resume (PDF or TXT)
                 </label>
                 <div className="border-2 border-dashed rounded-lg p-6 text-center">
                   <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                  <Input
-                    type="file"
-                    accept=".pdf"
-                    {...register("resume", { required: true })}
-                    className="mt-4"
-                  />
+                  <div className="mt-4">
+                    <Input
+                      type="file"
+                      accept=".pdf,.txt"
+                      {...register("resume", { required: true })}
+                      className="mt-4"
+                    />
+                    {selectedFile?.[0] && (
+                      <p className="text-sm text-gray-600 mt-2">
+                        Selected: {selectedFile[0].name}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 {errors.resume && (
                   <p className="text-red-500 text-sm mt-1">Resume is required</p>
