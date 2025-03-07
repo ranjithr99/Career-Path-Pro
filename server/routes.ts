@@ -13,7 +13,7 @@ const upload = multer({
 // Initialize Google AI with Gemini model
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
 const model = genAI.getGenerativeModel({ 
-  model: "gemini-1.0-pro",  // Updated model name
+  model: "gemini-2.0-flash",  // Updated model name
   safetySettings: [
     {
       category: "HARM_CATEGORY_HARASSMENT",
