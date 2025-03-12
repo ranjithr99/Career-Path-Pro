@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,19 +20,8 @@ import {
   Globe,
   Building,
   DollarSign,
-  ChevronLeft,
-  ChevronRightIcon
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
 
 interface RecommendedRole {
   title: string;
@@ -62,17 +51,13 @@ interface JobResponse {
   totalResults: number;
 }
 
-const JOBS_PER_PAGE = 5; // Match server-side limit
-
 export default function Jobs() {
-  const [currentPage, setCurrentPage] = useState(0);
-
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["/api/career-recommendations/1"],
   });
 
   const { data: jobsResponse, isLoading: jobsLoading } = useQuery<JobResponse>({
-    queryKey: ["/api/job-postings/1", currentPage, JOBS_PER_PAGE],
+    queryKey: ["/api/job-postings/1"],
     enabled: !!profile,
   });
 
@@ -88,8 +73,7 @@ export default function Jobs() {
   }
 
   const recommendedRoles = profile?.recommendations?.recommendedRoles || [];
-  const { jobs: availableJobs = [], totalResults = 0 } = jobsResponse || {};
-  const totalPages = Math.ceil(totalResults / JOBS_PER_PAGE);
+  const { jobs: availableJobs = [] } = jobsResponse || {};
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-8">
@@ -331,49 +315,6 @@ export default function Jobs() {
                 </CardContent>
               </Card>
             ))}
-
-            {totalPages > 1 && (
-              <Pagination className="mt-8">
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setCurrentPage(p => Math.max(0, p - 1));
-                      }}
-                      className={currentPage === 0 ? "pointer-events-none opacity-50" : ""}
-                    />
-                  </PaginationItem>
-
-                  {Array.from({ length: totalPages }, (_, i) => i).map(page => (
-                    <PaginationItem key={page}>
-                      <PaginationLink
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setCurrentPage(page);
-                        }}
-                        isActive={currentPage === page}
-                      >
-                        {page + 1}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
-
-                  <PaginationItem>
-                    <PaginationNext
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setCurrentPage(p => Math.min(totalPages - 1, p + 1));
-                      }}
-                      className={currentPage === totalPages - 1 ? "pointer-events-none opacity-50" : ""}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            )}
           </div>
         )}
       </div>
