@@ -211,6 +211,68 @@ ${JSON.stringify(profile.education)}`;
     }
   });
 
+  app.get("/api/portfolio-suggestions/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const profile = await storage.getCareerProfile(userId);
+
+      if (!profile) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+
+      // Generate portfolio suggestions using Gemini
+      const prompt = `Based on the following career profile, suggest personalized portfolio projects. Return only a JSON object with the following structure:
+{
+  "suggestedProjects": [{
+    "title": string,
+    "description": string,
+    "difficulty": "beginner" | "intermediate" | "advanced",
+    "timeEstimate": string,
+    "technologies": string[],
+    "learningOutcomes": string[],
+    "industryRelevance": string,
+    "implementation": {
+      "features": string[],
+      "architecture": string,
+      "challenges": string[]
+    }
+  }],
+  "skillGaps": [{
+    "skill": string,
+    "projectType": string,
+    "importance": string
+  }]
+}
+
+Profile:
+${JSON.stringify({
+  skills: profile.skills,
+  experience: profile.experience,
+  education: profile.education,
+  targetRoles: profile.targetRoles
+}, null, 2)}`;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+
+      // Extract JSON from the response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("Failed to parse AI response as JSON");
+      }
+
+      const parsedSuggestions = JSON.parse(jsonMatch[0]);
+      res.json(parsedSuggestions);
+    } catch (error) {
+      console.error("Error generating portfolio suggestions:", error);
+      res.status(500).json({ 
+        message: "Failed to generate portfolio suggestions",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

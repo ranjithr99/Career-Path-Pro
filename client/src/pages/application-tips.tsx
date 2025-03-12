@@ -2,7 +2,11 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Github, Briefcase, CheckCircle, XCircle, Loader2, Calendar, Linkedin, Users, TrendingUp, PenTool } from "lucide-react";
+import { 
+  FileText, Github, Briefcase, CheckCircle, XCircle, Loader2, 
+  Calendar, Linkedin, Users, TrendingUp, PenTool, Code, Clock,
+  BookOpen, Trophy, AlertTriangle
+} from "lucide-react";
 
 interface LinkedInEvent {
   title: string;
@@ -11,17 +15,44 @@ interface LinkedInEvent {
   type: string;
 }
 
+interface PortfolioSuggestionProject {
+  title: string;
+  description: string;
+  timeEstimate: string;
+  technologies: string[];
+  learningOutcomes: string[];
+  implementation: {
+    features: string[];
+    challenges: string[];
+  };
+}
+
+interface PortfolioSuggestion {
+  suggestedProjects: PortfolioSuggestionProject[];
+  skillGaps: {
+    skill: string;
+    projectType: string;
+    importance: string;
+  }[];
+}
+
+
 export default function ApplicationTips() {
-  const { data: profile, isLoading, error } = useQuery({
+  const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["/api/career-recommendations/1"],
   });
 
   const { data: events } = useQuery({
     queryKey: ["/api/linkedin-events/1"],
-    enabled: !!profile, // Only fetch if profile exists
+    enabled: !!profile,
   });
 
-  if (isLoading) {
+  const { data: portfolioSuggestions, isLoading: suggestionsLoading } = useQuery({
+    queryKey: ["/api/portfolio-suggestions/1"],
+    enabled: !!profile,
+  });
+
+  if (profileLoading || suggestionsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -32,7 +63,6 @@ export default function ApplicationTips() {
     );
   }
 
-  // Generate personalized resume recommendations based on profile
   const generateResumeRecommendations = () => {
     if (!profile?.resumeText) return defaultTips.resume;
 
@@ -75,7 +105,6 @@ export default function ApplicationTips() {
     return recommendations;
   };
 
-  // Generate personalized networking recommendations
   const generateNetworkingRecommendations = () => {
     const networkingTips = {
       strategies: [
@@ -132,10 +161,8 @@ export default function ApplicationTips() {
     return networkingTips;
   };
 
-  // Use personalized tips if available, otherwise fall back to defaults
   const resumeTips = profile ? generateResumeRecommendations() : defaultTips.resume;
   const networkingTips = profile ? generateNetworkingRecommendations() : defaultTips.networking;
-  const portfolioTips = defaultTips.portfolio; // Keep portfolio tips as is
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-8">
@@ -196,28 +223,110 @@ export default function ApplicationTips() {
           <TabsContent value="portfolio">
             <Card>
               <CardContent className="p-6">
-                <h2 className="text-xl font-semibold mb-4">Portfolio Enhancement</h2>
-                <div className="space-y-6">
-                  {portfolioTips.projects.map((project, index) => (
-                    <div key={index} className="border-l-4 border-blue-500 pl-4">
-                      <h3 className="font-medium">{project.title}</h3>
-                      <p className="text-gray-600 mt-1">{project.description}</p>
-                      <div className="mt-3">
-                        <h4 className="text-sm font-medium text-gray-700">Key Technologies</h4>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {project.technologies.map((tech, techIndex) => (
-                            <span
-                              key={techIndex}
-                              className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm"
-                            >
-                              {tech}
-                            </span>
-                          ))}
+                <h2 className="text-xl font-semibold mb-4">Portfolio Projects</h2>
+                <p className="text-gray-600 mb-6">
+                  Personalized project suggestions based on your profile and career goals
+                </p>
+
+                <div className="space-y-8">
+                  {portfolioSuggestions?.suggestedProjects.map((project, index) => (
+                    <div key={index} className="border rounded-lg p-6 space-y-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="text-lg font-medium">{project.title}</h3>
+                          <p className="text-gray-600 mt-1">{project.description}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm text-gray-500">{project.timeEstimate}</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <h4 className="font-medium flex items-center gap-2 mb-2">
+                            <Code className="h-4 w-4 text-blue-500" />
+                            Technologies
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {project.technologies.map((tech, techIndex) => (
+                              <span
+                                key={techIndex}
+                                className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm"
+                              >
+                                {tech}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="font-medium flex items-center gap-2 mb-2">
+                            <BookOpen className="h-4 w-4 text-green-500" />
+                            Learning Outcomes
+                          </h4>
+                          <ul className="space-y-1">
+                            {project.learningOutcomes.map((outcome, i) => (
+                              <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                                <CheckCircle className="h-4 w-4 text-green-500 mt-1" />
+                                <span>{outcome}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <h4 className="font-medium flex items-center gap-2 mb-2">
+                          <Trophy className="h-4 w-4 text-amber-500" />
+                          Implementation Guide
+                        </h4>
+                        <div className="space-y-4">
+                          <div>
+                            <h5 className="text-sm font-medium text-gray-700 mb-2">Key Features</h5>
+                            <ul className="space-y-1">
+                              {project.implementation.features.map((feature, i) => (
+                                <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                                  <CheckCircle className="h-4 w-4 text-blue-500 mt-1" />
+                                  <span>{feature}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div>
+                            <h5 className="text-sm font-medium text-gray-700 mb-2">Potential Challenges</h5>
+                            <ul className="space-y-1">
+                              {project.implementation.challenges.map((challenge, i) => (
+                                <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                                  <AlertTriangle className="h-4 w-4 text-amber-500 mt-1" />
+                                  <span>{challenge}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
+
+                {portfolioSuggestions?.skillGaps.length > 0 && (
+                  <div className="mt-8">
+                    <h3 className="text-lg font-medium mb-4">Recommended Skill Improvements</h3>
+                    <div className="space-y-3">
+                      {portfolioSuggestions.skillGaps.map((gap, index) => (
+                        <div key={index} className="flex items-start gap-3 text-gray-600">
+                          <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
+                          <div>
+                            <p className="font-medium text-gray-700">{gap.skill}</p>
+                            <p className="text-sm">Practice with: {gap.projectType}</p>
+                            <p className="text-sm text-amber-600">Importance: {gap.importance}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
