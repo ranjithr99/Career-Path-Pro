@@ -496,42 +496,45 @@ Career Goals: ${JSON.stringify(profile.recommendations?.recommendedRoles || [])}
       }
 
       // Generate portfolio suggestions using Gemini
-      const prompt = `Based on the following career profile, suggest personalized portfolio projects, highly aligned with industry skills. Return only a JSON object with the following structure:
+      const prompt = `Based on this career profile, suggest personalized portfolio projects that align with their target roles. Return only a JSON object with this exact structure, nothing else:
 {
-  "suggestedProjects": [{
-    "title": string,
-    "description": string,
-    "difficulty": "beginner" | "intermediate" | "advanced",
-    "timeEstimate": string,
-    "technologies": string[],
-    "learningOutcomes": string[],
-    "industryRelevance": string,
-    "implementation": {
-      "features": string[],
-      "architecture": string,
-      "challenges": string[]
+  "suggestedProjects": [
+    {
+      "title": string,
+      "description": string,
+      "timeEstimate": string,
+      "technologies": string[],
+      "learningOutcomes": string[],
+      "implementation": {
+        "features": string[],
+        "challenges": string[]
+      }
     }
-  }],
-  "skillGaps": [{
-    "skill": string,
-    "projectType": string,
-    "importance": string
-  }]
+  ],
+  "skillGaps": [
+    {
+      "skill": string,
+      "projectType": string,
+      "importance": string
+    }
+  ]
 }
 
-Profile:
-${JSON.stringify(
-  {
-    skills: profile.skills,
-    experience: profile.experience,
-    education: profile.education,
-    targetRoles: profile.targetRoles,
-  },
-  null,
-  2,
-)}`;
+Profile Details:
+- Current Skills: ${JSON.stringify(profile.skills)}
+- Experience: ${JSON.stringify(profile.experience)}
+- Target Roles: ${JSON.stringify(profile.recommendations?.recommendedRoles || [])}`;
 
-      const result = await model.generateContent(prompt);
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.8,
+          maxOutputTokens: 2048,
+        },
+      });
+
       const response = await result.response;
       const text = response.text();
 
@@ -541,13 +544,30 @@ ${JSON.stringify(
         throw new Error("Failed to parse AI response as JSON");
       }
 
-      const parsedSuggestions = JSON.parse(jsonMatch[0]);
-      res.json(parsedSuggestions);
+      try {
+        const parsedSuggestions = JSON.parse(jsonMatch[0]);
+
+        // Validate the response structure
+        if (!parsedSuggestions.suggestedProjects || !parsedSuggestions.skillGaps) {
+          throw new Error("Invalid response structure");
+        }
+
+        // Add recommended role context to each project
+        parsedSuggestions.suggestedProjects = parsedSuggestions.suggestedProjects.map(project => ({
+          ...project,
+          targetRole: profile.recommendations?.recommendedRoles?.[0]?.title || "Software Engineer"
+        }));
+
+        res.json(parsedSuggestions);
+      } catch (error) {
+        console.error("Error parsing suggestions:", error);
+        throw new Error("Failed to parse portfolio suggestions");
+      }
     } catch (error) {
       console.error("Error generating portfolio suggestions:", error);
       res.status(500).json({
         message: "Failed to generate portfolio suggestions",
-        details: error instanceof Error ? error.message : "Unknown error",
+        details: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
