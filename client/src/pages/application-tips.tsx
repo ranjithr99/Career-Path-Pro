@@ -2,7 +2,7 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Users, Github, Briefcase, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { FileText, Github, Briefcase, CheckCircle, XCircle, Loader2 } from "lucide-react";
 
 const defaultTips = {
   resume: {
@@ -80,20 +80,22 @@ export default function ApplicationTips() {
         <h1 className="text-3xl font-bold mb-8">Application Enhancement Tips</h1>
 
         <Tabs defaultValue="resume" className="space-y-6">
-          <TabsList className="grid grid-cols-4 gap-4">
-            <TabsTrigger value="resume" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Resume
-            </TabsTrigger>
-            <TabsTrigger value="portfolio" className="flex items-center gap-2">
-              <Github className="h-4 w-4" />
-              Portfolio
-            </TabsTrigger>
-            <TabsTrigger value="networking" className="flex items-center gap-2">
-              <Briefcase className="h-4 w-4" />
-              Networking
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex justify-center w-full">
+            <TabsList className="grid grid-cols-3 gap-4 min-w-[400px]">
+              <TabsTrigger value="resume" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Resume
+              </TabsTrigger>
+              <TabsTrigger value="portfolio" className="flex items-center gap-2">
+                <Github className="h-4 w-4" />
+                Portfolio
+              </TabsTrigger>
+              <TabsTrigger value="networking" className="flex items-center gap-2">
+                <Briefcase className="h-4 w-4" />
+                Networking
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="resume">
             <Card>

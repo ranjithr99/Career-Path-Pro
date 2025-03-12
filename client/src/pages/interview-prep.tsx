@@ -2,7 +2,6 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import { 
   MessageCircle, 
   Lightbulb, 
@@ -64,13 +63,15 @@ export default function InterviewPrep() {
           </Card>
         ) : (
           <Tabs defaultValue={categories[0]?.name} className="space-y-6">
-            <TabsList className="grid grid-cols-3 gap-4">
-              {categories.map((category) => (
-                <TabsTrigger key={category.name} value={category.name}>
-                  {category.name}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            <div className="flex justify-center w-full">
+              <TabsList className="grid grid-flow-col auto-cols-fr gap-2 w-full max-w-3xl">
+                {categories.map((category) => (
+                  <TabsTrigger key={category.name} value={category.name}>
+                    {category.name}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
 
             {categories.map((category) => (
               <TabsContent key={category.name} value={category.name}>
