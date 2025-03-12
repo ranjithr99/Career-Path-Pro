@@ -50,6 +50,10 @@ export default function Home() {
       description: "Get personalized career path recommendations based on your skills and experience"
     },
     {
+      title: "Mentorship Simulation",
+      description: "Industry-specific career advice powered by advanced reasoning models, with regular progress updates and recommendations"
+    },
+    {
       title: "Interview Preparation",
       description: "Access AI-generated interview questions tailored to your target roles"
     },
@@ -87,7 +91,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white"> {/* Changed background */}
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <div className="max-w-4xl mx-auto pt-16 px-4">
         <h1 className="text-5xl font-bold text-center mb-4 bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text transform hover:scale-105 transition-transform duration-200">
           CareerPath Pro
