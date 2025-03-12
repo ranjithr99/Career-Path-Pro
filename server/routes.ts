@@ -44,6 +44,7 @@ async function fetchJobPostings(profile: any) {
       page: 0,
       limit: 5, // Limiting to 5 jobs per request
       job_title_or: jobTitles,
+      technology_slug_or: profile.skills || [],
       posted_at_max_age_days: 7,
       company_country_code_or: ["US"],
       include_total_results: true
@@ -59,19 +60,40 @@ async function fetchJobPostings(profile: any) {
     console.log(`TheirStack API call completed in ${endTime - startTime}ms`);
 
     return {
-      jobs: response.data.data.map((job: any) => ({
-        title: job.job_title,
-        company: job.company_object.name,
-        companyLogo: job.company_object.logo,
-        location: job.location || job.short_location || 'Remote',
-        type: job.remote ? 'remote' : (job.hybrid ? 'hybrid' : 'onsite'),
-        description: job.description,
-        requirements: job.technology_slugs || [],
-        salary: `${job.min_annual_salary_usd ? `$${job.min_annual_salary_usd/1000}k` : ''} ${job.max_annual_salary_usd ? `- $${job.max_annual_salary_usd/1000}k` : ''}`,
-        postedDate: job.date_posted,
-        applicationUrl: job.url,
-        skillMatch: calculateSkillMatch(job.technology_slugs || [], profile.skills || [])
-      })),
+      jobs: response.data.data.map((job: any) => {
+        const userSkills = new Set(profile.skills?.map((s: string) => s.toLowerCase()) || []);
+        const jobSkills = new Set(job.technology_slugs?.map((s: string) => s.toLowerCase()) || []);
+
+        // Calculate skill match
+        let matchedSkills = 0;
+        let totalSkills = jobSkills.size;
+
+        if (totalSkills === 0) {
+          totalSkills = 1; // Prevent division by zero
+        }
+
+        jobSkills.forEach((skill: string) => {
+          if (userSkills.has(skill)) {
+            matchedSkills++;
+          }
+        });
+
+        const skillMatch = Math.round((matchedSkills / totalSkills) * 100);
+
+        return {
+          title: job.job_title,
+          company: job.company_object.name,
+          companyLogo: job.company_object.logo,
+          location: job.location || job.short_location || 'Remote',
+          type: job.remote ? 'remote' : (job.hybrid ? 'hybrid' : 'onsite'),
+          description: job.description,
+          requirements: job.technology_slugs || [],
+          salary: `${job.min_annual_salary_usd ? `$${job.min_annual_salary_usd/1000}k` : ''} ${job.max_annual_salary_usd ? `- $${job.max_annual_salary_usd/1000}k` : ''}`,
+          postedDate: job.date_posted,
+          applicationUrl: job.url,
+          skillMatch: skillMatch
+        };
+      }),
       totalResults: response.data.metadata.total_results || 0
     };
   } catch (error) {
@@ -94,11 +116,19 @@ async function fetchJobPostings(profile: any) {
 }
 
 function calculateSkillMatch(requirements: string[], userSkills: string[]): number {
-  if (!requirements.length) return 0;
-  const matchedSkills = requirements.filter(req => 
-    userSkills.some(skill => req.toLowerCase().includes(skill.toLowerCase()))
-  );
-  return Math.round((matchedSkills.length / requirements.length) * 100);
+  if (!requirements.length || !userSkills.length) return 0;
+
+  const reqSet = new Set(requirements.map(s => s.toLowerCase()));
+  const skillSet = new Set(userSkills.map(s => s.toLowerCase()));
+
+  let matches = 0;
+  reqSet.forEach(req => {
+    if (skillSet.has(req)) {
+      matches++;
+    }
+  });
+
+  return Math.round((matches / reqSet.size) * 100);
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
