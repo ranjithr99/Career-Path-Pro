@@ -36,15 +36,14 @@ async function fetchJobPostings(profile: any) {
   const startTime = Date.now();
 
   try {
-    // Extract job titles from profile experience
-    const jobTitles = profile.experience?.map((exp: any) => exp.title) || ["Software engineer"];
+    // Extract job titles from recommendations
+    const jobTitles = profile.recommendations?.recommendedRoles?.map((role: any) => role.title) || ["Software Engineer"];
     console.log(`Searching for job titles:`, jobTitles);
 
     const response = await axios.post(THEIRSTACK_API_URL, {
       page: 0,
       limit: 5, // Limiting to 5 jobs per request
       job_title_or: jobTitles,
-      technology_slug_or: profile.skills || [],
       posted_at_max_age_days: 7,
       company_country_code_or: ["US"],
       include_total_results: true
