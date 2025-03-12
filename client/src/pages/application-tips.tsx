@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,26 +38,28 @@ interface PortfolioSuggestion {
 
 
 export default function ApplicationTips() {
+  const [activeTab, setActiveTab] = useState("resume");
+
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["/api/career-recommendations/1"],
   });
 
-  const { data: events } = useQuery({
+  const { data: events, isLoading: eventsLoading } = useQuery({
     queryKey: ["/api/linkedin-events/1"],
-    enabled: !!profile,
+    enabled: !!profile && activeTab === "networking",
   });
 
   const { data: portfolioSuggestions, isLoading: suggestionsLoading } = useQuery({
     queryKey: ["/api/portfolio-suggestions/1"],
-    enabled: !!profile,
+    enabled: !!profile && activeTab === "portfolio",
   });
 
-  if (profileLoading || suggestionsLoading) {
+  if (profileLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-blue-500 mx-auto" />
-          <p className="mt-4 text-gray-600">Loading application tips...</p>
+          <p className="mt-4 text-gray-600">Loading your profile...</p>
         </div>
       </div>
     );
@@ -169,7 +171,7 @@ export default function ApplicationTips() {
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">Application Enhancement Tips</h1>
 
-        <Tabs defaultValue="resume" className="space-y-6">
+        <Tabs defaultValue="resume" className="space-y-6" onValueChange={setActiveTab}>
           <div className="flex justify-center w-full">
             <TabsList className="grid grid-cols-3 gap-4 min-w-[400px]">
               <TabsTrigger value="resume" className="flex items-center gap-2">
@@ -335,38 +337,47 @@ export default function ApplicationTips() {
             <Card>
               <CardContent className="p-6">
                 <h2 className="text-xl font-semibold mb-4">Networking Strategy</h2>
-                <div className="space-y-6">
-                  {networkingTips.strategies.map((strategy, index) => (
-                    <div key={index} className="border rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        {index === 0 ? (
-                          <Users className="h-5 w-5 text-blue-500" />
-                        ) : (
-                          <PenTool className="h-5 w-5 text-blue-500" />
-                        )}
-                        <h3 className="font-medium">{strategy.title}</h3>
-                      </div>
-                      <p className="text-gray-600 mb-4">{strategy.description}</p>
-
-                      {strategy.sections.map((section, sectionIndex) => (
-                        <div key={sectionIndex} className="mt-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <section.icon className="h-4 w-4 text-gray-600" />
-                            <h4 className="font-medium text-sm">{section.title}</h4>
-                          </div>
-                          <div className="space-y-3 pl-6">
-                            {section.items.map((item, itemIndex) => (
-                              <div key={itemIndex} className="flex items-start gap-2">
-                                <CheckCircle className="h-4 w-4 text-green-500 mt-1" />
-                                <p className="text-gray-700 text-sm">{item}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
+                {eventsLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                      <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto" />
+                      <p className="mt-4 text-gray-600">Generating networking recommendations...</p>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {networkingTips.strategies.map((strategy, index) => (
+                      <div key={index} className="border rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          {index === 0 ? (
+                            <Users className="h-5 w-5 text-blue-500" />
+                          ) : (
+                            <PenTool className="h-5 w-5 text-blue-500" />
+                          )}
+                          <h3 className="font-medium">{strategy.title}</h3>
+                        </div>
+                        <p className="text-gray-600 mb-4">{strategy.description}</p>
+
+                        {strategy.sections?.map((section, sectionIndex) => (
+                          <div key={sectionIndex} className="mt-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <section.icon className="h-4 w-4 text-gray-600" />
+                              <h4 className="font-medium text-sm">{section.title}</h4>
+                            </div>
+                            <div className="space-y-3 pl-6">
+                              {section.items.map((item, itemIndex) => (
+                                <div key={itemIndex} className="flex items-start gap-2">
+                                  <CheckCircle className="h-4 w-4 text-green-500 mt-1" />
+                                  <p className="text-gray-700 text-sm">{item}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
