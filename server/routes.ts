@@ -33,60 +33,6 @@ if (!process.env.THEIRSTACK_API_KEY) {
   );
 }
 
-// Helper function to get requirements based on role category
-function getRequirementsForRole(jobTitle: string): string[] {
-  const titleLower = jobTitle.toLowerCase();
-
-  // Tech roles
-  if (titleLower.includes('engineer')) {
-    if (titleLower.includes('data')) {
-      return ['Data Analysis', 'SQL', 'ETL', 'Data Warehousing', 'Big Data'];
-    } else if (titleLower.includes('software')) {
-      return ['Software Development', 'Programming', 'APIs', 'Databases', 'Problem Solving'];
-    } else if (titleLower.includes('cloud')) {
-      return ['Cloud Platforms', 'Infrastructure', 'Security', 'Networking', 'System Design'];
-    }
-  }
-
-  // Business roles
-  if (titleLower.includes('manager') || titleLower.includes('director')) {
-    return ['Leadership', 'Strategy', 'Team Management', 'Communication', 'Project Management'];
-  }
-  if (titleLower.includes('marketing')) {
-    return ['Marketing Strategy', 'Digital Marketing', 'Content Creation', 'Analytics', 'Brand Management'];
-  }
-  if (titleLower.includes('sales')) {
-    return ['Sales Strategy', 'Client Relations', 'Negotiation', 'CRM', 'Business Development'];
-  }
-
-  // Finance roles
-  if (titleLower.includes('analyst') || titleLower.includes('finance')) {
-    return ['Financial Analysis', 'Excel', 'Modeling', 'Reporting', 'Research'];
-  }
-  if (titleLower.includes('account')) {
-    return ['Accounting', 'Bookkeeping', 'Financial Reporting', 'Tax', 'Compliance'];
-  }
-
-  // HR roles
-  if (titleLower.includes('hr') || titleLower.includes('human resources')) {
-    return ['Recruitment', 'Employee Relations', 'HR Policies', 'Training', 'Benefits Administration'];
-  }
-
-  // Design roles
-  if (titleLower.includes('design')) {
-    return ['Design Tools', 'Visual Design', 'User Experience', 'Typography', 'Creative Direction'];
-  }
-
-  // Operations roles
-  if (titleLower.includes('operations')) {
-    return ['Process Improvement', 'Team Management', 'Resource Planning', 'Analytics', 'Project Management'];
-  }
-
-  // Default requirements for any professional role
-  return ['Communication', 'Collaboration', 'Problem Solving', 'Organization', 'Leadership'];
-}
-
-// Update the match score calculation in fetchJobPostings
 async function fetchJobPostings(profile: any) {
   console.log(`Fetching jobs`);
   const startTime = Date.now();
@@ -111,7 +57,7 @@ async function fetchJobPostings(profile: any) {
           job_title_or: [role.title],
           posted_at_max_age_days: 7,
           company_country_code_or: ["US"],
-          include_total_results: true
+          include_total_results: true,
         }, {
           headers: {
             Authorization: `Bearer ${process.env.THEIRSTACK_API_KEY}`,
@@ -126,42 +72,40 @@ async function fetchJobPostings(profile: any) {
           const jobTitleLower = job.job_title.toLowerCase();
           const roleTitleLower = role.title.toLowerCase();
 
-          // Role match (60% weight)
-          // Higher weight for role match since it's the primary career path indicator
+          // Title match (50% weight)
           if (jobTitleLower.includes(roleTitleLower)) {
-            matchScore += 60;
-          } else {
-            // Check for related roles in the same field
-            const relatedTerms = roleTitleLower.split(' ');
-            const hasRelatedTerm = relatedTerms.some(term => 
-              jobTitleLower.includes(term) && term.length > 3
-            );
-            if (hasRelatedTerm) {
-              matchScore += 45;
-            }
+            matchScore += 50;
+          } else if (jobTitleLower.includes('senior') && profile.experience?.length > 5) {
+            matchScore += 40;
+          } else if (!jobTitleLower.includes('senior') && profile.experience?.length <= 5) {
+            matchScore += 40;
           }
 
-          // Experience level match (20% weight)
-          const userExperience = profile.experience?.length || 0;
-          if (jobTitleLower.includes('senior') && userExperience > 5) {
-            matchScore += 20;
-          } else if (!jobTitleLower.includes('senior') && userExperience <= 5) {
-            matchScore += 20;
-          } else if (!jobTitleLower.includes('senior') && !jobTitleLower.includes('junior')) {
-            matchScore += 15; // Neutral position
-          }
+          // Primary skills match (30% weight)
+          const primarySkills = new Set([
+            'python',
+            'sql',
+            'etl',
+            'hadoop',
+            'spark',
+            'aws',
+            'javascript',
+            'react',
+            'node.js'
+          ]);
 
-          // Skill match (20% weight)
           const userSkills = new Set(profile.skills?.map((s: string) => s.toLowerCase()) || []);
-          const roleRequirements = getRequirementsForRole(jobTitleLower);
-          const matchedSkills = roleRequirements.filter(req => 
-            Array.from(userSkills).some(skill => 
-              skill.includes(req.toLowerCase()) || req.toLowerCase().includes(skill)
-            )
-          );
-
-          const skillScore = Math.round((matchedSkills.length / roleRequirements.length) * 20);
+          const matchedSkills = Array.from(userSkills).filter(skill => primarySkills.has(skill));
+          const skillScore = Math.min(30, (matchedSkills.length / 3) * 30); // Max 30% for skills
           matchScore += skillScore;
+
+          // Additional bonus (20% weight)
+          if (profile.recommendations?.recommendedRoles?.[0]?.title.toLowerCase() === roleTitleLower) {
+            matchScore += 20; // Bonus for matching top recommended role
+          }
+
+          // Determine requirements based on role
+          const requirements = getRequirementsForRole(jobTitleLower);
 
           return {
             title: job.job_title,
@@ -170,11 +114,11 @@ async function fetchJobPostings(profile: any) {
             location: job.location || job.short_location || 'Remote',
             type: job.remote ? 'remote' : (job.hybrid ? 'hybrid' : 'onsite'),
             description: job.description,
-            requirements: roleRequirements,
+            requirements,
             salary: `${job.min_annual_salary_usd ? `$${job.min_annual_salary_usd/1000}k` : ''} ${job.max_annual_salary_usd ? `- $${job.max_annual_salary_usd/1000}k` : ''}`,
             postedDate: job.date_posted,
             applicationUrl: job.url,
-            skillMatch: matchScore,
+            skillMatch: Math.round(matchScore),
             roleMatch: role.title
           };
         });
@@ -211,6 +155,22 @@ async function fetchJobPostings(profile: any) {
     }
     return { jobs: [], totalResults: 0 };
   }
+}
+
+// Helper function to get requirements based on role
+function getRequirementsForRole(jobTitle: string): string[] {
+  if (jobTitle.includes('data engineer')) {
+    return ['Python', 'SQL', 'ETL', 'Data Warehousing', 'Big Data'];
+  } else if (jobTitle.includes('software engineer')) {
+    return ['JavaScript', 'Python', 'Full Stack', 'APIs', 'Databases'];
+  } else if (jobTitle.includes('cloud engineer')) {
+    return ['AWS', 'Azure', 'Kubernetes', 'Docker', 'Infrastructure'];
+  } else if (jobTitle.includes('frontend')) {
+    return ['React', 'TypeScript', 'HTML/CSS', 'UI/UX', 'APIs'];
+  } else if (jobTitle.includes('backend')) {
+    return ['Node.js', 'Python', 'Databases', 'APIs', 'System Design'];
+  }
+  return ['Programming', 'Problem Solving', 'Communication', 'Version Control'];
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
