@@ -273,6 +273,61 @@ ${JSON.stringify({
     }
   });
 
+  app.get("/api/job-postings/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const profile = await storage.getCareerProfile(userId);
+
+      if (!profile) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+
+      // Generate job postings using Gemini
+      const prompt = `Based on the following career profile, generate relevant job postings. Return only a JSON object with the following structure:
+{
+  "jobPostings": [{
+    "title": string,
+    "company": string,
+    "location": string,
+    "type": "remote" | "hybrid" | "onsite",
+    "description": string,
+    "requirements": string[],
+    "salary": string,
+    "postedDate": string,
+    "applicationUrl": string,
+    "skillMatch": number
+  }]
+}
+
+Profile:
+${JSON.stringify({
+  skills: profile.skills,
+  experience: profile.experience,
+  education: profile.education,
+  targetRoles: profile.targetRoles
+}, null, 2)}`;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+
+      // Extract JSON from the response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("Failed to parse AI response as JSON");
+      }
+
+      const parsedPostings = JSON.parse(jsonMatch[0]);
+      res.json(parsedPostings);
+    } catch (error) {
+      console.error("Error generating job postings:", error);
+      res.status(500).json({ 
+        message: "Failed to generate job postings",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
