@@ -39,122 +39,40 @@ export default function ApplicationTips() {
     const resumeText = profile.resumeText;
     const recommendations = {
       improvements: [] as string[],
-      removals: [] as string[],
-      skillsGaps: [] as string[]
+      removals: [] as string[]
     };
 
-    // Analyze experience descriptions
-    const experienceMatches = resumeText.match(/(?<=\n)(.*?experience.*?\n)((?:.*?\n)*?)(?=\n|$)/gi);
-    if (experienceMatches) {
-      const experienceText = experienceMatches.join('\n');
-      const bulletPoints = experienceText.match(/•\s*[^•\n]+|^\s*-\s*[^-\n]+/gm) || [];
-
-      // Check for weak bullet points (starting with generic verbs)
-      const weakBullets = bulletPoints.filter(bullet => 
-        bullet.match(/•\s*(worked|helped|assisted|responsible|participated)/i)
-      );
-      if (weakBullets.length > 0) {
-        recommendations.improvements.push(
-          `Replace weak action verbs with stronger alternatives. For example:\n` +
-          weakBullets.map(bullet => 
-            `• Instead of "${bullet.trim()}", try using "Led", "Spearheaded", "Implemented", or "Orchestrated"`
-          ).join('\n')
-        );
-      }
-
-      // Check for quantifiable achievements
-      const nonQuantifiedBullets = bulletPoints.filter(bullet => 
-        !bullet.match(/\d+%|\$\d+|\d+ million|\d+ users|\d+ team|\d+ project|\d+ month/gi)
-      );
-      if (nonQuantifiedBullets.length > 0) {
-        recommendations.improvements.push(
-          `Add specific metrics to these achievements:\n` +
-          nonQuantifiedBullets.slice(0, 3).map(bullet => 
-            `• "${bullet.trim()}" - Include numbers, percentages, or timeframes`
-          ).join('\n')
-        );
-      }
-
-      // Check for technical detail depth
-      if (!experienceText.match(/using|leveraging|implementing|developing with/gi)) {
-        recommendations.improvements.push(
-          "Add technical implementation details to your experience. For example:\n" +
-          "• Specify tools and technologies used in each project\n" +
-          "• Mention specific methodologies or frameworks employed"
-        );
-      }
+    // Check for quantifiable achievements
+    if (!resumeText.match(/increased|decreased|improved|reduced|achieved|delivered|generated/gi)) {
+      recommendations.improvements.push("Add more quantifiable achievements - your experience seems to lack specific metrics");
     }
 
-    // Analyze skills alignment with target role
-    if (profile.targetRole && profile.skills) {
-      const targetRoleSkills = profile.recommendations?.requiredSkills || [];
-      const missingSkills = targetRoleSkills.filter(
-        skill => !profile.skills.some(s => s.toLowerCase().includes(skill.toLowerCase()))
-      );
-
-      if (missingSkills.length > 0) {
-        const relevantSkills = missingSkills.slice(0, 3);
-        recommendations.skillsGaps.push(
-          `Your target role of ${profile.targetRole} typically requires: ${relevantSkills.join(', ')}. Consider:\n` +
-          `• Taking online courses in ${relevantSkills[0]}\n` +
-          `• Working on side projects using ${relevantSkills[1]}\n` +
-          `• Getting certified in ${relevantSkills[2]}`
-        );
-      }
+    // Check for technical skills alignment
+    if (profile.targetRole?.includes("Data") && !resumeText.toLowerCase().includes("sql")) {
+      recommendations.improvements.push("Include SQL skills as it's crucial for your target data roles");
     }
 
-    // Check for industry-specific keywords
-    if (profile.targetRole) {
-      const industryKeywords = {
-        'Software Engineer': ['architecture', 'scalable', 'optimization', 'system design'],
-        'Data Scientist': ['machine learning', 'statistical analysis', 'data visualization'],
-        'Product Manager': ['stakeholder', 'roadmap', 'user research', 'metrics']
-      };
-
-      const roleKeywords = industryKeywords[profile.targetRole as keyof typeof industryKeywords] || [];
-      const missingKeywords = roleKeywords.filter(keyword => 
-        !resumeText.toLowerCase().includes(keyword)
-      );
-
-      if (missingKeywords.length > 0) {
-        recommendations.improvements.push(
-          `Incorporate these industry-specific keywords to strengthen your profile:\n` +
-          missingKeywords.map(keyword => `• Add examples of your experience with "${keyword}"`).join('\n')
-        );
-      }
+    // Check for action verbs
+    if (!resumeText.match(/implemented|developed|created|managed|led|coordinated/gi)) {
+      recommendations.improvements.push("Use more powerful action verbs to describe your achievements");
     }
 
-    // Check for formatting and structure
-    const sections = resumeText.match(/^[A-Z][A-Za-z\s]+:?$/gm) || [];
-    const expectedSections = ['Experience', 'Education', 'Skills', 'Projects'];
-    const missingSections = expectedSections.filter(section => 
-      !sections.some(s => s.toLowerCase().includes(section.toLowerCase()))
-    );
-
-    if (missingSections.length > 0) {
-      recommendations.improvements.push(
-        `Add these missing sections to follow standard resume format:\n` +
-        missingSections.map(section => `• ${section}`).join('\n')
-      );
-    }
-
-    // Check for outdated or irrelevant information
+    // Check for outdated information
     const years = resumeText.match(/20[0-9]{2}/g) || [];
     const oldestYear = Math.min(...years.map(y => parseInt(y)));
     if (oldestYear < 2015) {
-      recommendations.removals.push(
-        `Your resume includes experience from ${oldestYear}. Consider:\n` +
-        `• Removing positions older than 8-10 years unless they're highly relevant\n` +
-        `• Focusing on recent achievements that demonstrate current skills\n` +
-        `• Summarizing older experience in a brief "Additional Experience" section`
-      );
+      recommendations.removals.push(`Consider removing experience older than 2015 unless highly relevant`);
     }
 
-    return {
-      improvements: recommendations.improvements,
-      removals: recommendations.removals,
-      skillsGaps: recommendations.skillsGaps
-    };
+    // Add default recommendations if needed
+    if (recommendations.improvements.length < 3) {
+      recommendations.improvements.push(...defaultTips.resume.improvements);
+    }
+    if (recommendations.removals.length < 2) {
+      recommendations.removals.push(...defaultTips.resume.removals);
+    }
+
+    return recommendations;
   };
 
   // Generate personalized networking recommendations
@@ -258,20 +176,6 @@ export default function ApplicationTips() {
                       ))}
                     </div>
                   </div>
-
-                  {resumeTips.skillsGaps && resumeTips.skillsGaps.length > 0 && (
-                    <div>
-                      <h3 className="font-medium mb-3">Skills Enhancement</h3>
-                      <div className="space-y-3">
-                        {resumeTips.skillsGaps.map((item, index) => (
-                          <div key={index} className="flex items-start gap-3">
-                            <TrendingUp className="h-5 w-5 text-blue-500 mt-0.5" />
-                            <p className="text-gray-700">{item}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
                   <div>
                     <h3 className="font-medium mb-3">Suggested Removals</h3>
