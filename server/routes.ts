@@ -383,44 +383,6 @@ ${JSON.stringify({
     }
   });
 
-  app.get("/api/job-postings/:userId", async (req, res) => {
-    const startTime = Date.now();
-    try {
-      const userId = parseInt(req.params.userId);
-      const page = parseInt(req.query.page as string) || 0;
-      const limit = parseInt(req.query.limit as string) || 10;
-
-      console.log(`Processing job postings request for user ${userId}`, {
-        page,
-        limit,
-        hasApiKey: !!process.env.THEIRSTACK_API_KEY
-      });
-
-      const profile = await storage.getCareerProfile(userId);
-      if (!profile) {
-        return res.status(404).json({ message: "Profile not found" });
-      }
-
-      const result = await fetchJobPostings(profile.skills || [], page, limit);
-
-      console.log(`Job postings request completed in ${Date.now() - startTime}ms`, {
-        totalJobs: result.jobs.length,
-        totalResults: result.totalResults
-      });
-
-      res.json(result);
-    } catch (error) {
-      console.error("Error fetching job postings:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      console.error(`Job postings request failed after ${Date.now() - startTime}ms:`, errorMessage);
-
-      res.status(500).json({ 
-        message: "Failed to fetch job postings",
-        details: errorMessage
-      });
-    }
-  });
-
   const httpServer = createServer(app);
   return httpServer;
 }

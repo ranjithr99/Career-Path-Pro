@@ -77,12 +77,12 @@ export default function Jobs() {
     enabled: !!profile,
   });
 
-  if (profileLoading || jobsLoading) {
+  if (profileLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-blue-500 mx-auto" />
-          <p className="mt-4 text-gray-600">Finding the best opportunities for you...</p>
+          <p className="mt-4 text-gray-600">Loading your profile...</p>
         </div>
       </div>
     );
@@ -253,112 +253,133 @@ export default function Jobs() {
         </div>
 
         <h2 className="text-2xl font-bold mb-6">Available Positions</h2>
-        <div className="space-y-6">
-          {availableJobs.map((job, index) => (
-            <Card key={index} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4">
-                    {job.companyLogo ? (
-                      <img
-                        src={job.companyLogo}
-                        alt={`${job.company} logo`}
-                        className="h-12 w-12 object-contain rounded-lg"
-                      />
-                    ) : (
-                      <Building className="h-12 w-12 text-blue-500" />
-                    )}
-                    <div>
-                      <h3 className="text-xl font-semibold">{job.title}</h3>
-                      <p className="text-gray-600">{job.company}</p>
+        {jobsLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto" />
+              <p className="mt-4 text-gray-600">Finding matching jobs...</p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {availableJobs.map((job, index) => (
+              <Card key={index} className="hover:shadow-lg transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4">
+                      {job.companyLogo ? (
+                        <img
+                          src={job.companyLogo}
+                          alt={`${job.company} logo`}
+                          className="h-12 w-12 object-contain rounded-lg"
+                        />
+                      ) : (
+                        <Building className="h-12 w-12 text-blue-500" />
+                      )}
+                      <div>
+                        <h3 className="text-xl font-semibold">{job.title}</h3>
+                        <p className="text-gray-600">{job.company}</p>
 
-                      <div className="flex flex-wrap gap-4 mt-3">
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <MapPin className="h-4 w-4" />
-                          <span>{job.location}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Globe className="h-4 w-4" />
-                          <span>{job.type}</span>
-                        </div>
-                        {job.salary && (
+                        <div className="flex flex-wrap gap-4 mt-3">
                           <div className="flex items-center gap-2 text-gray-600">
-                            <DollarSign className="h-4 w-4" />
-                            <span>{job.salary}</span>
+                            <MapPin className="h-4 w-4" />
+                            <span>{job.location}</span>
                           </div>
-                        )}
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <Globe className="h-4 w-4" />
+                            <span>{job.type}</span>
+                          </div>
+                          {job.salary && (
+                            <div className="flex items-center gap-2 text-gray-600">
+                              <DollarSign className="h-4 w-4" />
+                              <span>{job.salary}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-                      {job.skillMatch}% Match
+                    <div className="text-right">
+                      <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                        {job.skillMatch}% Match
+                      </div>
+                      <p className="text-sm text-gray-500 mt-2">Posted {job.postedDate}</p>
                     </div>
-                    <p className="text-sm text-gray-500 mt-2">Posted {job.postedDate}</p>
                   </div>
-                </div>
 
-                <div className="mt-4">
-                  <p className="text-gray-700">{job.description}</p>
-                </div>
-
-                <div className="mt-4">
-                  <h4 className="font-medium mb-2">Required Technologies</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {job.requirements.map((req, i) => (
-                      <span
-                        key={i}
-                        className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm"
-                      >
-                        {req}
-                      </span>
-                    ))}
+                  <div className="mt-4">
+                    <p className="text-gray-700 line-clamp-3">{job.description}</p>
                   </div>
-                </div>
 
-                <div className="mt-6 flex justify-end">
-                  <Button
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
-                    onClick={() => window.open(job.applicationUrl, '_blank')}
-                  >
-                    Apply Now
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="mt-4">
+                    <h4 className="font-medium mb-2">Required Technologies</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {job.requirements.map((req, i) => (
+                        <span
+                          key={i}
+                          className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm"
+                        >
+                          {req}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
 
-          {totalPages > 1 && (
-            <Pagination className="mt-8">
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
-                    disabled={currentPage === 0}
-                  />
-                </PaginationItem>
-
-                {Array.from({ length: totalPages }, (_, i) => i).map(page => (
-                  <PaginationItem key={page}>
-                    <PaginationLink
-                      onClick={() => setCurrentPage(page)}
-                      isActive={currentPage === page}
+                  <div className="mt-6 flex justify-end">
+                    <Button
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
+                      onClick={() => window.open(job.applicationUrl, '_blank')}
                     >
-                      {page + 1}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
+                      Apply Now
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
 
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
-                    disabled={currentPage === totalPages - 1}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          )}
-        </div>
+            {totalPages > 1 && (
+              <Pagination className="mt-8">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setCurrentPage(p => Math.max(0, p - 1));
+                      }}
+                      className={currentPage === 0 ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+
+                  {Array.from({ length: totalPages }, (_, i) => i).map(page => (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setCurrentPage(page);
+                        }}
+                        isActive={currentPage === page}
+                      >
+                        {page + 1}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setCurrentPage(p => Math.min(totalPages - 1, p + 1));
+                      }}
+                      className={currentPage === totalPages - 1 ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
