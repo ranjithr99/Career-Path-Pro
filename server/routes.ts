@@ -67,50 +67,45 @@ async function fetchJobPostings(profile: any) {
         });
 
         return response.data.data.map((job: any) => {
-          // Define default requirements based on job title
-          let defaultRequirements = [];
-          let baseMatch = 85; // High base match since it matches the recommended role
+          // Calculate match score based on role and profile
+          let matchScore = 0;
+          const jobTitleLower = job.job_title.toLowerCase();
+          const roleTitleLower = role.title.toLowerCase();
 
-          if (job.job_title.toLowerCase().includes("software engineer")) {
-            defaultRequirements = ["JavaScript", "Python", "React", "Node.js", "SQL"];
-          } else if (job.job_title.toLowerCase().includes("data engineer")) {
-            defaultRequirements = ["Python", "SQL", "ETL", "Hadoop", "Spark"];
-          } else if (job.job_title.toLowerCase().includes("cloud engineer")) {
-            defaultRequirements = ["AWS", "Azure", "Kubernetes", "Docker", "Terraform"];
-          } else if (job.job_title.toLowerCase().includes("frontend")) {
-            defaultRequirements = ["React", "JavaScript", "HTML", "CSS", "TypeScript"];
-          } else if (job.job_title.toLowerCase().includes("backend")) {
-            defaultRequirements = ["Node.js", "Python", "Java", "SQL", "REST APIs"];
-          } else {
-            defaultRequirements = ["Programming", "Problem Solving", "Communication", "Git"];
-            baseMatch = 75; // Lower base match for unknown roles
+          // Title match (50% weight)
+          if (jobTitleLower.includes(roleTitleLower)) {
+            matchScore += 50;
+          } else if (jobTitleLower.includes('senior') && profile.experience?.length > 5) {
+            matchScore += 40;
+          } else if (!jobTitleLower.includes('senior') && profile.experience?.length <= 5) {
+            matchScore += 40;
           }
 
-          // Calculate skill match percentage
+          // Primary skills match (30% weight)
+          const primarySkills = new Set([
+            'python',
+            'sql',
+            'etl',
+            'hadoop',
+            'spark',
+            'aws',
+            'javascript',
+            'react',
+            'node.js'
+          ]);
+
           const userSkills = new Set(profile.skills?.map((s: string) => s.toLowerCase()) || []);
-          let skillMatchScore = 0;
-          let totalSkills = defaultRequirements.length;
+          const matchedSkills = Array.from(userSkills).filter(skill => primarySkills.has(skill));
+          const skillScore = Math.min(30, (matchedSkills.length / 3) * 30); // Max 30% for skills
+          matchScore += skillScore;
 
-          defaultRequirements.forEach(skill => {
-            const skillLower = skill.toLowerCase();
-            if (userSkills.has(skillLower)) {
-              skillMatchScore++;
-            }
-          });
+          // Additional bonus (20% weight)
+          if (profile.recommendations?.recommendedRoles?.[0]?.title.toLowerCase() === roleTitleLower) {
+            matchScore += 20; // Bonus for matching top recommended role
+          }
 
-          // Calculate weighted match score
-          const titleMatch = role.title.toLowerCase() === job.job_title.toLowerCase() ? 100 : 80;
-          const skillMatch = (skillMatchScore / totalSkills) * 100;
-
-          // Final score is weighted average:
-          // - 40% title match
-          // - 40% skill match
-          // - 20% base match (for being in recommended roles)
-          const finalMatch = Math.round(
-            (titleMatch * 0.4) + 
-            (skillMatch * 0.4) + 
-            (baseMatch * 0.2)
-          );
+          // Determine requirements based on role
+          const requirements = getRequirementsForRole(jobTitleLower);
 
           return {
             title: job.job_title,
@@ -119,11 +114,11 @@ async function fetchJobPostings(profile: any) {
             location: job.location || job.short_location || 'Remote',
             type: job.remote ? 'remote' : (job.hybrid ? 'hybrid' : 'onsite'),
             description: job.description,
-            requirements: defaultRequirements,
+            requirements,
             salary: `${job.min_annual_salary_usd ? `$${job.min_annual_salary_usd/1000}k` : ''} ${job.max_annual_salary_usd ? `- $${job.max_annual_salary_usd/1000}k` : ''}`,
             postedDate: job.date_posted,
             applicationUrl: job.url,
-            skillMatch: finalMatch,
+            skillMatch: Math.round(matchScore),
             roleMatch: role.title
           };
         });
@@ -162,23 +157,20 @@ async function fetchJobPostings(profile: any) {
   }
 }
 
-function calculateSkillMatch(
-  requirements: string[],
-  userSkills: string[],
-): number {
-  if (!requirements.length || !userSkills.length) return 0;
-
-  const reqSet = new Set(requirements.map((s) => s.toLowerCase()));
-  const skillSet = new Set(userSkills.map((s) => s.toLowerCase()));
-
-  let matches = 0;
-  reqSet.forEach((req) => {
-    if (skillSet.has(req)) {
-      matches++;
-    }
-  });
-
-  return Math.round((matches / reqSet.size) * 100);
+// Helper function to get requirements based on role
+function getRequirementsForRole(jobTitle: string): string[] {
+  if (jobTitle.includes('data engineer')) {
+    return ['Python', 'SQL', 'ETL', 'Data Warehousing', 'Big Data'];
+  } else if (jobTitle.includes('software engineer')) {
+    return ['JavaScript', 'Python', 'Full Stack', 'APIs', 'Databases'];
+  } else if (jobTitle.includes('cloud engineer')) {
+    return ['AWS', 'Azure', 'Kubernetes', 'Docker', 'Infrastructure'];
+  } else if (jobTitle.includes('frontend')) {
+    return ['React', 'TypeScript', 'HTML/CSS', 'UI/UX', 'APIs'];
+  } else if (jobTitle.includes('backend')) {
+    return ['Node.js', 'Python', 'Databases', 'APIs', 'System Design'];
+  }
+  return ['Programming', 'Problem Solving', 'Communication', 'Version Control'];
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -453,8 +445,8 @@ Career Goals: ${JSON.stringify(profile.recommendations?.recommendedRoles || [])}
         const parsedRecommendations = JSON.parse(jsonMatch[0]);
 
         // Validate the response structure
-        if (!parsedRecommendations.upcoming || !parsedRecommendations.groups || 
-            !parsedRecommendations.influencers || !parsedRecommendations.trendingTopics || 
+        if (!parsedRecommendations.upcoming || !parsedRecommendations.groups ||
+            !parsedRecommendations.influencers || !parsedRecommendations.trendingTopics ||
             !parsedRecommendations.contentIdeas) {
           throw new Error("Invalid response structure");
         }
