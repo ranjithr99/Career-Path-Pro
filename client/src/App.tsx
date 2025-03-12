@@ -4,7 +4,7 @@ import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
-import CareerAnalysis from "@/pages/career-analysis";
+import Jobs from "@/pages/jobs";
 import InterviewPrep from "@/pages/interview-prep";
 import ApplicationTips from "@/pages/application-tips";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
@@ -29,8 +29,8 @@ function Navigation() {
         {hasProfile && (
           <>
             <NavigationMenuItem>
-              <Link href="/career-analysis">
-                <NavigationMenuLink>Career Analysis</NavigationMenuLink>
+              <Link href="/jobs">
+                <NavigationMenuLink>Jobs</NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
             <NavigationMenuItem>
@@ -64,7 +64,7 @@ function Router() {
         <Route path="/" component={Home} />
         {hasProfile ? (
           <>
-            <Route path="/career-analysis" component={CareerAnalysis} />
+            <Route path="/jobs" component={Jobs} />
             <Route path="/interview-prep" component={InterviewPrep} />
             <Route path="/application-tips" component={ApplicationTips} />
           </>

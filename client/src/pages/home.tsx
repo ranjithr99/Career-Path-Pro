@@ -4,19 +4,42 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Github, Linkedin, Lock, CheckCircle } from "lucide-react";
+import { Upload, Github, Linkedin, Lock, CheckCircle, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { uploadCareerProfile } from "@/lib/openai";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function Home() {
   const { register, handleSubmit, formState: { errors }, watch } = useForm();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const selectedFile = watch("resume");
+  const queryClient = useQueryClient();
 
   const { data: profile } = useQuery({
     queryKey: ["/api/career-recommendations/1"], // TODO: Get user ID from auth
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: uploadCareerProfile,
+    onSuccess: async () => {
+      toast({
+        title: "Success",
+        description: "Career profile uploaded successfully",
+      });
+      // Invalidate and refetch career recommendations
+      await queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] });
+      // Wait for a brief moment to ensure data is available
+      setTimeout(() => setLocation("/career-analysis"), 1000);
+    },
+    onError: (error) => {
+      console.error("Upload error:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to upload career profile",
+        variant: "destructive",
+      });
+    }
   });
 
   const hasProfile = !!profile;
@@ -47,18 +70,12 @@ export default function Home() {
         return;
       }
 
-      console.log("Uploading file:", data.resume[0].name);
       const formData = new FormData();
       formData.append("resume", data.resume[0]);
       formData.append("linkedinUrl", data.linkedinUrl || '');
       formData.append("githubUsername", data.githubUsername || '');
 
-      await uploadCareerProfile(formData);
-      toast({
-        title: "Success",
-        description: "Career profile uploaded successfully",
-      });
-      setLocation("/career-analysis");
+      await uploadMutation.mutateAsync(formData);
     } catch (error) {
       console.error("Upload error:", error);
       toast({
@@ -72,11 +89,11 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <div className="max-w-4xl mx-auto pt-16 px-4">
-        <h1 className="text-4xl font-bold text-center mb-4">
-          AI-Powered Career Pathway Advisor
+        <h1 className="text-5xl font-bold text-center mb-4 bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text transform hover:scale-105 transition-transform duration-200">
+          CareerPath Pro
         </h1>
         <p className="text-center text-gray-600 mb-8">
-          Upload your resume to unlock personalized career insights and guidance
+          AI-Powered Career Pathway Advisor
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
@@ -157,8 +174,19 @@ export default function Home() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full">
-                {hasProfile ? "Update Career Profile" : "Start Career Analysis"}
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={uploadMutation.isPending}
+              >
+                {uploadMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  hasProfile ? "Update Career Profile" : "Start Career Analysis"
+                )}
               </Button>
 
               {!hasProfile && (
