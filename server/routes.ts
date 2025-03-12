@@ -31,15 +31,19 @@ if (!process.env.THEIRSTACK_API_KEY) {
   console.error('THEIRSTACK_API_KEY is not set. Job search functionality will not work.');
 }
 
-async function fetchJobPostings(skills: string[]) {
+async function fetchJobPostings(profile: any) {
   console.log(`Fetching jobs`);
   const startTime = Date.now();
 
   try {
+    // Extract job titles from profile experience
+    const jobTitles = profile.experience?.map((exp: any) => exp.title) || ["Software engineer"];
+    console.log(`Searching for job titles:`, jobTitles);
+
     const response = await axios.post(THEIRSTACK_API_URL, {
       page: 0,
       limit: 5, // Limiting to 5 jobs per request
-      job_title_or: ["Software engineer"],
+      job_title_or: jobTitles,
       posted_at_max_age_days: 7,
       company_country_code_or: ["US"],
       include_total_results: true
@@ -66,7 +70,7 @@ async function fetchJobPostings(skills: string[]) {
         salary: `${job.min_annual_salary_usd ? `$${job.min_annual_salary_usd/1000}k` : ''} ${job.max_annual_salary_usd ? `- $${job.max_annual_salary_usd/1000}k` : ''}`,
         postedDate: job.date_posted,
         applicationUrl: job.url,
-        skillMatch: calculateSkillMatch(job.technology_slugs || [], skills)
+        skillMatch: calculateSkillMatch(job.technology_slugs || [], profile.skills || [])
       })),
       totalResults: response.data.metadata.total_results || 0
     };
@@ -112,7 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Profile not found" });
       }
 
-      const result = await fetchJobPostings(profile.skills || []);
+      const result = await fetchJobPostings(profile);
 
       console.log(`Job postings request completed in ${Date.now() - startTime}ms`, {
         totalJobs: result.jobs.length,
