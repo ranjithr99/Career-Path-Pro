@@ -318,11 +318,47 @@ ${JSON.stringify(profile, null, 2)}`;
       }
 
       // Generate interview prep using Gemini
-      const prompt = `Based on the following career profile, generate interview preparation materials. Return only a JSON object with the following structure, nothing else: { "categories": [{ "name": string, "description": string, "questions": [{ "question": string, "sampleAnswer": string, "tips": string[], "commonMistakes": string[] }] }] }
+      const prompt = `As an expert technical interviewer, analyze this career profile and generate comprehensive interview preparation materials focused on their target roles and experience level. 
+
+Return only a JSON object with this exact structure, nothing else:
+{
+  "categories": [
+    {
+      "name": string, // e.g. "Technical Skills", "System Design", "Behavioral Questions"
+      "description": string,
+      "questions": [
+        {
+          "question": string,
+          "sampleAnswer": string,
+          "tips": string[],
+          "commonMistakes": string[]
+        }
+      ]
+    }
+  ]
+}
+
+Focus on:
+1. Technical questions specific to their skills (${profile.skills?.join(', ')})
+2. System design appropriate for their experience level
+3. Behavioral questions based on their past experiences
+4. Role-specific questions for ${profile.recommendations?.recommendedRoles?.[0]?.title || 'Software Engineering'}
+
+Make questions challenging but appropriate for their experience level. Include detailed sample answers and specific tips.
+
 Profile:
 ${JSON.stringify(profile, null, 2)}`;
 
-      const result = await model.generateContent(prompt);
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.8,
+          maxOutputTokens: 2048,
+        },
+      });
+
       const response = await result.response;
       const text = response.text();
 
@@ -332,14 +368,28 @@ ${JSON.stringify(profile, null, 2)}`;
         throw new Error("Failed to parse AI response as JSON");
       }
 
-      const parsedQuestions = JSON.parse(jsonMatch[0]);
+      try {
+        const parsedQuestions = JSON.parse(jsonMatch[0]);
 
-      // Update profile with interview prep
-      const updatedProfile = await storage.updateCareerProfile(profile.id, {
-        interviewPrep: parsedQuestions,
-      });
+        // Validate the response structure
+        if (!parsedQuestions.categories) {
+          throw new Error("Invalid response structure");
+        }
 
-      res.json(updatedProfile);
+        // Update profile with interview prep
+        const updatedProfile = await storage.updateCareerProfile(profile.id, {
+          interviewPrep: parsedQuestions,
+        });
+
+        res.json(updatedProfile);
+      } catch (error) {
+        console.error("Error parsing interview questions:", error);
+        res.status(500).json({
+          message: "Failed to generate interview questions",
+          details: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+
     } catch (error) {
       console.error("Error generating interview prep:", error);
       res.status(500).json({
@@ -361,7 +411,6 @@ ${JSON.stringify(profile, null, 2)}`;
 
       // Generate comprehensive networking recommendations using Gemini
       const prompt = `You are a professional career networking expert. Based on this profile, generate personalized networking recommendations in JSON format.
-
 Return only a JSON object with this exact structure, nothing else:
 {
   "upcoming": [
