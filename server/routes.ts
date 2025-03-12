@@ -36,8 +36,8 @@ async function fetchJobPostings(profile: any) {
   const startTime = Date.now();
 
   try {
-    // Extract job titles from recommendations (top 3)
-    const recommendedRoles = profile.recommendations?.recommendedRoles?.slice(0, 3) || [];
+    // Extract job titles from recommendations (top 2 only since we only need 2 roles now)
+    const recommendedRoles = profile.recommendations?.recommendedRoles?.slice(0, 2) || [];
     if (!recommendedRoles.length) {
       console.log('No recommended roles found, using default');
       recommendedRoles.push({ title: "Software Engineer" });
@@ -46,7 +46,7 @@ async function fetchJobPostings(profile: any) {
 
     // Make separate API calls for each role
     const jobsByRole = await Promise.all(recommendedRoles.map(async (role: any, index: number) => {
-      const limit = index === 0 || index === 1 ? 2 : 1; // 2 jobs each for first two roles, 1 for the last
+      const limit = index === 0 ? 2 : 1; // 2 jobs for first role, 1 for second
 
       try {
         const response = await axios.post(THEIRSTACK_API_URL, {
@@ -65,14 +65,38 @@ async function fetchJobPostings(profile: any) {
         });
 
         return response.data.data.map((job: any) => {
+          // Get user skills and job required skills
           const userSkills = new Set(profile.skills?.map((s: string) => s.toLowerCase()) || []);
           const jobSkills = new Set(job.technology_slugs?.map((s: string) => s.toLowerCase()) || []);
+          const roleSkills = new Set(role.requiredSkills?.map((s: string) => s.toLowerCase()) || []);
+
+          // Combine job skills with role skills
+          const allRequiredSkills = new Set([...jobSkills, ...roleSkills]);
 
           // Calculate skill match
           let matchedSkills = 0;
-          let totalSkills = jobSkills.size || 1;
+          let totalSkills = allRequiredSkills.size;
 
-          jobSkills.forEach((skill: string) => {
+          // If no skills are listed, use 50% as a base match since the job title matches
+          if (totalSkills === 0) {
+            return {
+              title: job.job_title,
+              company: job.company_object.name,
+              companyLogo: job.company_object.logo,
+              location: job.location || job.short_location || 'Remote',
+              type: job.remote ? 'remote' : (job.hybrid ? 'hybrid' : 'onsite'),
+              description: job.description,
+              requirements: job.technology_slugs || [],
+              salary: `${job.min_annual_salary_usd ? `$${job.min_annual_salary_usd/1000}k` : ''} ${job.max_annual_salary_usd ? `- $${job.max_annual_salary_usd/1000}k` : ''}`,
+              postedDate: job.date_posted,
+              applicationUrl: job.url,
+              skillMatch: 50, // Base match percentage for title match
+              roleMatch: role.title
+            };
+          }
+
+          // Calculate actual skill match if skills are present
+          allRequiredSkills.forEach((skill: string) => {
             if (userSkills.has(skill)) {
               matchedSkills++;
             }
@@ -92,7 +116,7 @@ async function fetchJobPostings(profile: any) {
             postedDate: job.date_posted,
             applicationUrl: job.url,
             skillMatch: skillMatch,
-            roleMatch: role.title // Add role match for reference
+            roleMatch: role.title
           };
         });
       } catch (error) {
