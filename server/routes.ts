@@ -392,9 +392,9 @@ ${JSON.stringify(profile, null, 2)}`;
       }
 
       // Generate comprehensive networking recommendations using Gemini
-      const prompt = `Based on the following professional profile, generate highly personalized and relevant networking recommendations. Focus on the candidate's specific skills, experience level, and career goals.
+      const prompt = `You are a professional career networking expert. Based on this profile, generate personalized networking recommendations in JSON format.
 
-Format the response as a JSON object with this exact structure, and only return the JSON object:
+Return only a JSON object with this exact structure, nothing else:
 {
   "upcoming": [
     {
@@ -437,15 +437,14 @@ Format the response as a JSON object with this exact structure, and only return 
   ]
 }
 
-Profile:
+Profile Details:
 Skills: ${JSON.stringify(profile.skills)}
 Experience: ${JSON.stringify(profile.experience)}
 Education: ${JSON.stringify(profile.education)}
 Career Goals: ${JSON.stringify(profile.recommendations?.recommendedRoles || [])}`;
 
       const result = await model.generateContent({
-        contents: [{ role: "system", parts: [{ text: "You are a professional career networking expert. Generate personalized recommendations in JSON format only." }] },
-        { role: "user", parts: [{ text: prompt }] }],
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.7,
           topK: 40,
