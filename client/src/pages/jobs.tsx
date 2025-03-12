@@ -62,10 +62,9 @@ interface JobResponse {
   totalResults: number;
 }
 
-const JOBS_PER_PAGE = 10;
+const JOBS_PER_PAGE = 5; // Match server-side limit
 
 export default function Jobs() {
-  const [selectedRole, setSelectedRole] = useState<RecommendedRole | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
 
   const { data: profile, isLoading: profileLoading } = useQuery({
@@ -145,10 +144,7 @@ export default function Jobs() {
 
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button
-                        className="w-full mt-4"
-                        onClick={() => setSelectedRole(role)}
-                      >
+                      <Button className="w-full mt-4">
                         View Career Path
                       </Button>
                     </DialogTrigger>

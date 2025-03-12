@@ -31,16 +31,17 @@ if (!process.env.THEIRSTACK_API_KEY) {
   console.error('THEIRSTACK_API_KEY is not set. Job search functionality will not work.');
 }
 
-async function fetchJobPostings(skills: string[], page: number = 0, limit: number = 10) {
-  console.log(`Fetching jobs for skills: ${skills.join(', ')} (page: ${page}, limit: ${limit})`);
+async function fetchJobPostings(skills: string[], page: number = 0) {
+  console.log(`Fetching jobs for page ${page}`);
   const startTime = Date.now();
 
   try {
     const response = await axios.post(THEIRSTACK_API_URL, {
       page,
-      limit,
-      job_technology_slug_or: skills,
-      posted_at_max_age_days: 30,
+      limit: 5, // Limiting to 5 jobs per request
+      job_title_or: ["Software engineer"],
+      posted_at_max_age_days: 7,
+      company_country_code_or: ["US"],
       include_total_results: true
     }, {
       headers: {
@@ -102,11 +103,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = parseInt(req.params.userId);
       const page = parseInt(req.query.page as string) || 0;
-      const limit = parseInt(req.query.limit as string) || 10;
 
       console.log(`Processing job postings request for user ${userId}`, {
         page,
-        limit,
         hasApiKey: !!process.env.THEIRSTACK_API_KEY
       });
 
@@ -115,7 +114,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Profile not found" });
       }
 
-      const result = await fetchJobPostings(profile.skills || [], page, limit);
+      const result = await fetchJobPostings(profile.skills || [], page);
 
       console.log(`Job postings request completed in ${Date.now() - startTime}ms`, {
         totalJobs: result.jobs.length,
