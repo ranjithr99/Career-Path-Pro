@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import multer from "multer";
 import { insertCareerProfileSchema } from "@shared/schema";
+import axios from 'axios';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -22,7 +23,118 @@ const model = genAI.getGenerativeModel({
   ],
 });
 
+// TheirStack API configuration
+const THEIRSTACK_API_URL = 'https://api.theirstack.com/v1/jobs/search';
+
+// Verify API key is loaded
+if (!process.env.THEIRSTACK_API_KEY) {
+  console.error('THEIRSTACK_API_KEY is not set. Job search functionality will not work.');
+}
+
+async function fetchJobPostings(skills: string[], page: number = 0, limit: number = 10) {
+  console.log(`Fetching jobs for skills: ${skills.join(', ')} (page: ${page}, limit: ${limit})`);
+  const startTime = Date.now();
+
+  try {
+    const response = await axios.post(THEIRSTACK_API_URL, {
+      page,
+      limit,
+      job_technology_slug_or: skills,
+      posted_at_max_age_days: 30,
+      include_total_results: true
+    }, {
+      headers: {
+        'Authorization': `Bearer ${process.env.THEIRSTACK_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 10000 // 10 second timeout
+    });
+
+    const endTime = Date.now();
+    console.log(`TheirStack API call completed in ${endTime - startTime}ms`);
+
+    return {
+      jobs: response.data.data.map((job: any) => ({
+        title: job.job_title,
+        company: job.company_object.name,
+        companyLogo: job.company_object.logo,
+        location: job.location || job.short_location || 'Remote',
+        type: job.remote ? 'remote' : (job.hybrid ? 'hybrid' : 'onsite'),
+        description: job.description,
+        requirements: job.technology_slugs || [],
+        salary: `${job.min_annual_salary_usd ? `$${job.min_annual_salary_usd/1000}k` : ''} ${job.max_annual_salary_usd ? `- $${job.max_annual_salary_usd/1000}k` : ''}`,
+        postedDate: job.date_posted,
+        applicationUrl: job.url,
+        skillMatch: calculateSkillMatch(job.technology_slugs || [], skills)
+      })),
+      totalResults: response.data.metadata.total_results || 0
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('TheirStack API error:', {
+        status: error.response?.status,
+        message: error.message,
+        data: error.response?.data,
+        duration: Date.now() - startTime
+      });
+
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('TheirStack API request timed out');
+      }
+    } else {
+      console.error('Unexpected error while fetching jobs:', error);
+    }
+    return { jobs: [], totalResults: 0 };
+  }
+}
+
+function calculateSkillMatch(requirements: string[], userSkills: string[]): number {
+  if (!requirements.length) return 0;
+  const matchedSkills = requirements.filter(req => 
+    userSkills.some(skill => req.toLowerCase().includes(skill.toLowerCase()))
+  );
+  return Math.round((matchedSkills.length / requirements.length) * 100);
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  app.get("/api/job-postings/:userId", async (req, res) => {
+    const startTime = Date.now();
+    try {
+      const userId = parseInt(req.params.userId);
+      const page = parseInt(req.query.page as string) || 0;
+      const limit = parseInt(req.query.limit as string) || 10;
+
+      console.log(`Processing job postings request for user ${userId}`, {
+        page,
+        limit,
+        hasApiKey: !!process.env.THEIRSTACK_API_KEY
+      });
+
+      const profile = await storage.getCareerProfile(userId);
+      if (!profile) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+
+      const result = await fetchJobPostings(profile.skills || [], page, limit);
+
+      console.log(`Job postings request completed in ${Date.now() - startTime}ms`, {
+        totalJobs: result.jobs.length,
+        totalResults: result.totalResults
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching job postings:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      console.error(`Job postings request failed after ${Date.now() - startTime}ms:`, errorMessage);
+
+      res.status(500).json({ 
+        message: "Failed to fetch job postings",
+        details: errorMessage
+      });
+    }
+  });
+
   app.post("/api/career-profile", upload.single("resume"), async (req, res) => {
     try {
       console.log("Received career profile request", {
@@ -44,7 +156,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Analyze resume using Gemini
       const prompt = `Analyze the following resume and extract skills, experience, and education. Return only a JSON object with the following structure, nothing else: { "skills": string[], "experience": { "title": string, "company": string, "duration": string, "description": string[] }[], "education": { "degree": string, "institution": string, "year": string }[] }
-
 Resume text:
 ${resumeText}`;
 
@@ -135,7 +246,6 @@ ${JSON.stringify(profile, null, 2)}`;
 
       // Generate interview prep using Gemini
       const prompt = `Based on the following career profile, generate interview preparation materials. Return only a JSON object with the following structure, nothing else: { "categories": [{ "name": string, "description": string, "questions": [{ "question": string, "sampleAnswer": string, "tips": string[], "commonMistakes": string[] }] }] }
-
 Profile:
 ${JSON.stringify(profile, null, 2)}`;
 
@@ -274,56 +384,39 @@ ${JSON.stringify({
   });
 
   app.get("/api/job-postings/:userId", async (req, res) => {
+    const startTime = Date.now();
     try {
       const userId = parseInt(req.params.userId);
-      const profile = await storage.getCareerProfile(userId);
+      const page = parseInt(req.query.page as string) || 0;
+      const limit = parseInt(req.query.limit as string) || 10;
 
+      console.log(`Processing job postings request for user ${userId}`, {
+        page,
+        limit,
+        hasApiKey: !!process.env.THEIRSTACK_API_KEY
+      });
+
+      const profile = await storage.getCareerProfile(userId);
       if (!profile) {
         return res.status(404).json({ message: "Profile not found" });
       }
 
-      // Generate job postings using Gemini
-      const prompt = `Based on the following career profile, generate relevant job postings. Return only a JSON object with the following structure:
-{
-  "jobPostings": [{
-    "title": string,
-    "company": string,
-    "location": string,
-    "type": "remote" | "hybrid" | "onsite",
-    "description": string,
-    "requirements": string[],
-    "salary": string,
-    "postedDate": string,
-    "applicationUrl": string,
-    "skillMatch": number
-  }]
-}
+      const result = await fetchJobPostings(profile.skills || [], page, limit);
 
-Profile:
-${JSON.stringify({
-  skills: profile.skills,
-  experience: profile.experience,
-  education: profile.education,
-  targetRoles: profile.targetRoles
-}, null, 2)}`;
+      console.log(`Job postings request completed in ${Date.now() - startTime}ms`, {
+        totalJobs: result.jobs.length,
+        totalResults: result.totalResults
+      });
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-
-      // Extract JSON from the response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("Failed to parse AI response as JSON");
-      }
-
-      const parsedPostings = JSON.parse(jsonMatch[0]);
-      res.json(parsedPostings);
+      res.json(result);
     } catch (error) {
-      console.error("Error generating job postings:", error);
+      console.error("Error fetching job postings:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      console.error(`Job postings request failed after ${Date.now() - startTime}ms:`, errorMessage);
+
       res.status(500).json({ 
-        message: "Failed to generate job postings",
-        details: error instanceof Error ? error.message : "Unknown error"
+        message: "Failed to fetch job postings",
+        details: errorMessage
       });
     }
   });
