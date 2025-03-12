@@ -1,5 +1,5 @@
 import React from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -45,27 +45,20 @@ interface NetworkingResponse {
 }
 
 export default function ApplicationTips() {
-  const queryClient = useQueryClient();
-
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["/api/career-recommendations/1"],
-    refetchOnMount: true, // Force refetch when component mounts
-    cacheTime: 0 // Disable caching
   });
 
   const { data: events, isLoading: eventsLoading, error: eventsError } = useQuery<NetworkingResponse>({
     queryKey: ["/api/linkedin-events/1"],
     enabled: !!profile,
-    staleTime: 0, // Always fetch fresh data
-    cacheTime: 0,
-    retry: 3
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: 3, // Retry failed requests 3 times
   });
 
   const { data: portfolioSuggestions, isLoading: suggestionsLoading } = useQuery({
     queryKey: ["/api/portfolio-suggestions/1"],
     enabled: !!profile,
-    staleTime: 0,
-    cacheTime: 0
   });
 
   const NetworkingSectionLoader = () => (

@@ -39,83 +39,112 @@ async function fetchJobPostings(profile: any) {
 
   try {
     // Extract job titles from recommendations (top 2 only since we only need 2 roles now)
-    const recommendedRoles = profile.recommendations?.recommendedRoles?.slice(0, 2) || [];
+    const recommendedRoles =
+      profile.recommendations?.recommendedRoles?.slice(0, 2) || [];
     if (!recommendedRoles.length) {
-      console.log('No recommended roles found, using default');
+      console.log("No recommended roles found, using default");
       recommendedRoles.push({ title: "Software Engineer" });
     }
-    console.log(`Using recommended roles:`, recommendedRoles.map((r: any) => r.title));
+    console.log(
+      `Using recommended roles:`,
+      recommendedRoles.map((r: any) => r.title),
+    );
 
     // Make separate API calls for each role
-    const jobsByRole = await Promise.all(recommendedRoles.map(async (role: any, index: number) => {
-      const limit = index === 0 ? 2 : 1; // 2 jobs for first role, 1 for second
+    const jobsByRole = await Promise.all(
+      recommendedRoles.map(async (role: any, index: number) => {
+        const limit = index === 0 ? 2 : 1; // 2 jobs for first role, 1 for second
 
-      try {
-        console.log(`Fetching jobs for role: ${role.title}`);
-        const response = await axios.post(THEIRSTACK_API_URL, {
-          page: 0,
-          limit,
-          job_title_or: [role.title],
-          posted_at_max_age_days: 7,
-          company_country_code_or: ["US"],
-          include_total_results: true,
-        }, {
-          headers: {
-            Authorization: `Bearer ${process.env.THEIRSTACK_API_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          timeout: 10000 // 10 second timeout
-        });
+        try {
+          const response = await axios.post(
+            THEIRSTACK_API_URL,
+            {
+              page: 0,
+              limit,
+              job_title_or: [role.title],
+              posted_at_max_age_days: 7,
+              company_country_code_or: ["US"],
+              include_total_results: true,
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${process.env.THEIRSTACK_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              timeout: 10000, // 10 second timeout
+            },
+          );
 
-        return response.data.data.map((job: any) => {
-          // Calculate match score based on role and profile
-          let matchScore = 0;
-          const jobTitleLower = job.job_title.toLowerCase();
-          const roleTitleLower = role.title.toLowerCase();
+          return response.data.data.map((job: any) => {
+            // Define default requirements based on job title
+            let defaultRequirements = [];
+            let baseMatch = 85; // High base match since it matches the recommended role
 
-          // Main role match (60% weight)
-          if (jobTitleLower.includes(roleTitleLower)) {
-            matchScore += 60;
-          }
-
-          // Skill match (40% weight)
-          const userSkills = new Set(profile.skills?.map((s: string) => s.toLowerCase()) || []);
-          const jobSkills = new Set((job.technology_slugs || []).map((s: string) => s.toLowerCase()));
-          const totalSkills = jobSkills.size || 1;
-          let matchedSkills = 0;
-
-          jobSkills.forEach((skill: string) => {
-            if (userSkills.has(skill)) {
-              matchedSkills++;
+            if (job.job_title.toLowerCase().includes("software engineer")) {
+              defaultRequirements = [
+                "JavaScript",
+                "Python",
+                "React",
+                "Node.js",
+                "SQL",
+              ];
+            } else if (job.job_title.toLowerCase().includes("data engineer")) {
+              defaultRequirements = ["Python", "SQL", "ETL", "Hadoop", "Spark"];
+            } else if (job.job_title.toLowerCase().includes("cloud engineer")) {
+              defaultRequirements = [
+                "AWS",
+                "Azure",
+                "Kubernetes",
+                "Docker",
+                "Terraform",
+              ];
+            } else if (job.job_title.toLowerCase().includes("frontend")) {
+              defaultRequirements = [
+                "React",
+                "JavaScript",
+                "HTML",
+                "CSS",
+                "TypeScript",
+              ];
+            } else if (job.job_title.toLowerCase().includes("backend")) {
+              defaultRequirements = [
+                "Node.js",
+                "Python",
+                "Java",
+                "SQL",
+                "REST APIs",
+              ];
+            } else {
+              defaultRequirements = [
+                "Programming",
+                "Problem Solving",
+                "Communication",
+                "Git",
+              ];
+              baseMatch = 75; // Lower base match for unknown roles
             }
+
+            return {
+              title: job.job_title,
+              company: job.company_object.name,
+              companyLogo: job.company_object.logo,
+              location: job.location || job.short_location || "Remote",
+              type: job.remote ? "remote" : job.hybrid ? "hybrid" : "onsite",
+              description: job.description,
+              requirements: defaultRequirements,
+              salary: `${job.min_annual_salary_usd ? `$${job.min_annual_salary_usd / 1000}k` : ""} ${job.max_annual_salary_usd ? `- $${job.max_annual_salary_usd / 1000}k` : ""}`,
+              postedDate: job.date_posted,
+              applicationUrl: job.url,
+              skillMatch: baseMatch,
+              roleMatch: role.title,
+            };
           });
-
-          const skillScore = Math.min(40, Math.round((matchedSkills / totalSkills) * 40));
-          matchScore += skillScore;
-
-          // Get requirements based on role
-          const requirements = getRequirementsForRole(jobTitleLower);
-
-          return {
-            title: job.job_title,
-            company: job.company_object.name,
-            companyLogo: job.company_object.logo,
-            location: job.location || job.short_location || 'Remote',
-            type: job.remote ? 'remote' : (job.hybrid ? 'hybrid' : 'onsite'),
-            description: job.description,
-            requirements,
-            salary: `${job.min_annual_salary_usd ? `$${job.min_annual_salary_usd/1000}k` : ''} ${job.max_annual_salary_usd ? `- $${job.max_annual_salary_usd/1000}k` : ''}`,
-            postedDate: job.date_posted,
-            applicationUrl: job.url,
-            skillMatch: matchScore,
-            roleMatch: role.title
-          };
-        });
-      } catch (error) {
-        console.error(`Error fetching jobs for role ${role.title}:`, error);
-        return [];
-      }
-    }));
+        } catch (error) {
+          console.error(`Error fetching jobs for role ${role.title}:`, error);
+          return [];
+        }
+      }),
+    );
 
     // Combine all jobs
     const allJobs = jobsByRole.flat();
@@ -125,7 +154,7 @@ async function fetchJobPostings(profile: any) {
 
     return {
       jobs: allJobs,
-      totalResults: allJobs.length
+      totalResults: allJobs.length,
     };
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -146,20 +175,23 @@ async function fetchJobPostings(profile: any) {
   }
 }
 
-// Helper function to get requirements based on role
-function getRequirementsForRole(jobTitle: string): string[] {
-  if (jobTitle.includes('data engineer')) {
-    return ['Python', 'SQL', 'ETL', 'Data Warehousing', 'Big Data'];
-  } else if (jobTitle.includes('software engineer')) {
-    return ['JavaScript', 'Python', 'Full Stack', 'APIs', 'Databases'];
-  } else if (jobTitle.includes('cloud engineer')) {
-    return ['AWS', 'Azure', 'Kubernetes', 'Docker', 'Infrastructure'];
-  } else if (jobTitle.includes('frontend')) {
-    return ['React', 'TypeScript', 'HTML/CSS', 'UI/UX', 'APIs'];
-  } else if (jobTitle.includes('backend')) {
-    return ['Node.js', 'Python', 'Databases', 'APIs', 'System Design'];
-  }
-  return ['Programming', 'Problem Solving', 'Communication', 'Version Control'];
+function calculateSkillMatch(
+  requirements: string[],
+  userSkills: string[],
+): number {
+  if (!requirements.length || !userSkills.length) return 0;
+
+  const reqSet = new Set(requirements.map((s) => s.toLowerCase()));
+  const skillSet = new Set(userSkills.map((s) => s.toLowerCase()));
+
+  let matches = 0;
+  reqSet.forEach((req) => {
+    if (skillSet.has(req)) {
+      matches++;
+    }
+  });
+
+  return Math.round((matches / reqSet.size) * 100);
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -318,47 +350,11 @@ ${JSON.stringify(profile, null, 2)}`;
       }
 
       // Generate interview prep using Gemini
-      const prompt = `As an expert technical interviewer, analyze this career profile and generate comprehensive interview preparation materials focused on their target roles and experience level. 
-
-Return only a JSON object with this exact structure, nothing else:
-{
-  "categories": [
-    {
-      "name": string, // e.g. "Technical Skills", "System Design", "Behavioral Questions"
-      "description": string,
-      "questions": [
-        {
-          "question": string,
-          "sampleAnswer": string,
-          "tips": string[],
-          "commonMistakes": string[]
-        }
-      ]
-    }
-  ]
-}
-
-Focus on:
-1. Technical questions specific to their skills (${profile.skills?.join(', ')})
-2. System design appropriate for their experience level
-3. Behavioral questions based on their past experiences
-4. Role-specific questions for ${profile.recommendations?.recommendedRoles?.[0]?.title || 'Software Engineering'}
-
-Make questions challenging but appropriate for their experience level. Include detailed sample answers and specific tips.
-
+      const prompt = `Based on the following career profile, generate interview preparation materials. Return only a JSON object with the following structure, nothing else: { "categories": [{ "name": string, "description": string, "questions": [{ "question": string, "sampleAnswer": string, "tips": string[], "commonMistakes": string[] }] }] }
 Profile:
 ${JSON.stringify(profile, null, 2)}`;
 
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.8,
-          maxOutputTokens: 2048,
-        },
-      });
-
+      const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
 
@@ -368,28 +364,14 @@ ${JSON.stringify(profile, null, 2)}`;
         throw new Error("Failed to parse AI response as JSON");
       }
 
-      try {
-        const parsedQuestions = JSON.parse(jsonMatch[0]);
+      const parsedQuestions = JSON.parse(jsonMatch[0]);
 
-        // Validate the response structure
-        if (!parsedQuestions.categories) {
-          throw new Error("Invalid response structure");
-        }
+      // Update profile with interview prep
+      const updatedProfile = await storage.updateCareerProfile(profile.id, {
+        interviewPrep: parsedQuestions,
+      });
 
-        // Update profile with interview prep
-        const updatedProfile = await storage.updateCareerProfile(profile.id, {
-          interviewPrep: parsedQuestions,
-        });
-
-        res.json(updatedProfile);
-      } catch (error) {
-        console.error("Error parsing interview questions:", error);
-        res.status(500).json({
-          message: "Failed to generate interview questions",
-          details: error instanceof Error ? error.message : "Unknown error",
-        });
-      }
-
+      res.json(updatedProfile);
     } catch (error) {
       console.error("Error generating interview prep:", error);
       res.status(500).json({
@@ -411,6 +393,7 @@ ${JSON.stringify(profile, null, 2)}`;
 
       // Generate comprehensive networking recommendations using Gemini
       const prompt = `You are a professional career networking expert. Based on this profile, generate personalized networking recommendations in JSON format.
+
 Return only a JSON object with this exact structure, nothing else:
 {
   "upcoming": [
@@ -483,8 +466,8 @@ Career Goals: ${JSON.stringify(profile.recommendations?.recommendedRoles || [])}
         const parsedRecommendations = JSON.parse(jsonMatch[0]);
 
         // Validate the response structure
-        if (!parsedRecommendations.upcoming || !parsedRecommendations.groups ||
-            !parsedRecommendations.influencers || !parsedRecommendations.trendingTopics ||
+        if (!parsedRecommendations.upcoming || !parsedRecommendations.groups || 
+            !parsedRecommendations.influencers || !parsedRecommendations.trendingTopics || 
             !parsedRecommendations.contentIdeas) {
           throw new Error("Invalid response structure");
         }
