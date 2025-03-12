@@ -17,7 +17,9 @@ export default function Home() {
   const queryClient = useQueryClient();
 
   const { data: profile } = useQuery({
-    queryKey: ["/api/career-recommendations/1"], // TODO: Get user ID from auth
+    queryKey: ["/api/career-recommendations/1"],
+    refetchOnMount: true,
+    cacheTime: 0
   });
 
   const uploadMutation = useMutation({
@@ -25,27 +27,35 @@ export default function Home() {
     onSuccess: async () => {
       toast({
         title: "Success",
-        description: "Career profile uploaded successfully",
+        description: "Career profile uploaded successfully! Analyzing your profile...",
       });
 
-      // Invalidate all related queries
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] }),
-        queryClient.invalidateQueries({ queryKey: ["/api/job-postings/1"] }),
-        queryClient.invalidateQueries({ queryKey: ["/api/linkedin-events/1"] }),
-        queryClient.invalidateQueries({ queryKey: ["/api/portfolio-suggestions/1"] }),
-        queryClient.invalidateQueries({ queryKey: ["/api/interview-prep/1"] })
-      ]);
+      // Show loading toast
+      toast({
+        title: "Processing",
+        description: "Generating personalized career insights...",
+      });
 
-      // Clear cache for these queries
-      queryClient.removeQueries({ queryKey: ["/api/career-recommendations/1"] });
-      queryClient.removeQueries({ queryKey: ["/api/job-postings/1"] });
-      queryClient.removeQueries({ queryKey: ["/api/linkedin-events/1"] });
-      queryClient.removeQueries({ queryKey: ["/api/portfolio-suggestions/1"] });
-      queryClient.removeQueries({ queryKey: ["/api/interview-prep/1"] });
+      try {
+        // Remove all existing queries first
+        queryClient.removeQueries();
 
-      // Wait for cache to clear before redirecting
-      setTimeout(() => setLocation("/jobs"), 1000);
+        // Prefetch the recommendations to ensure data is available
+        await queryClient.prefetchQuery({
+          queryKey: ["/api/career-recommendations/1"],
+          staleTime: 0
+        });
+
+        // Once the data is available, redirect to jobs page
+        setLocation("/jobs");
+      } catch (error) {
+        console.error("Error prefetching data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load profile data. Please try again.",
+          variant: "destructive",
+        });
+      }
     },
     onError: (error) => {
       console.error("Upload error:", error);
