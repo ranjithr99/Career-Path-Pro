@@ -175,12 +175,20 @@ ${JSON.stringify(profile, null, 2)}`;
         return res.status(404).json({ message: "Profile not found" });
       }
 
-      // Generate LinkedIn event recommendations using Gemini
-      const prompt = `Based on the following career profile, suggest relevant LinkedIn events and networking opportunities. Return only a JSON object with the following structure, nothing else: { "upcoming": [ { "title": string, "date": string, "type": string, "url": string } ] }
+      // Generate comprehensive networking recommendations using Gemini
+      const prompt = `Based on the following career profile, provide detailed networking recommendations. Return only a JSON object with the following structure:
+{
+  "upcoming": [{ "title": string, "date": string, "type": string, "url": string }],
+  "groups": [{ "name": string, "description": string, "memberCount": string, "relevance": string }],
+  "influencers": [{ "name": string, "title": string, "expertise": string[], "reason": string }],
+  "trendingTopics": [{ "topic": string, "description": string, "suggestedInteraction": string }],
+  "contentIdeas": [{ "title": string, "description": string, "targetAudience": string, "expectedImpact": string }]
+}
 
 Profile skills and interests:
 ${JSON.stringify(profile.skills)}
-${JSON.stringify(profile.experience)}`;
+${JSON.stringify(profile.experience)}
+${JSON.stringify(profile.education)}`;
 
       const result = await model.generateContent(prompt);
       const response = await result.response;
@@ -192,12 +200,12 @@ ${JSON.stringify(profile.experience)}`;
         throw new Error("Failed to parse AI response as JSON");
       }
 
-      const parsedEvents = JSON.parse(jsonMatch[0]);
-      res.json(parsedEvents);
+      const parsedRecommendations = JSON.parse(jsonMatch[0]);
+      res.json(parsedRecommendations);
     } catch (error) {
-      console.error("Error generating LinkedIn events:", error);
+      console.error("Error generating networking recommendations:", error);
       res.status(500).json({ 
-        message: "Failed to generate LinkedIn events",
+        message: "Failed to generate networking recommendations",
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }

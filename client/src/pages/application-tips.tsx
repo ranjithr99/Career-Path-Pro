@@ -2,7 +2,7 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Github, Briefcase, CheckCircle, XCircle, Loader2, Calendar, Linkedin } from "lucide-react";
+import { FileText, Github, Briefcase, CheckCircle, XCircle, Loader2, Calendar, Linkedin, Users, TrendingUp, PenTool } from "lucide-react";
 
 interface LinkedInEvent {
   title: string;
@@ -82,22 +82,48 @@ export default function ApplicationTips() {
         {
           title: "Professional Network Building",
           description: "Tailored networking opportunities based on your profile",
-          actionItems: [
-            ...(events?.upcoming?.map((event: LinkedInEvent) => 
-              `Attend "${event.title}" ${event.type} on ${event.date}`
-            ) || []),
-            "Join relevant professional groups in your field",
-            "Connect with alumni from your educational background"
+          sections: [
+            {
+              title: "Upcoming Events",
+              icon: Calendar,
+              items: events?.upcoming?.map((event: LinkedInEvent) =>
+                `Attend "${event.title}" ${event.type} on ${event.date}`
+              ) || []
+            },
+            {
+              title: "Recommended Groups",
+              icon: Users,
+              items: events?.groups?.map((group: any) =>
+                `Join "${group.name}" - ${group.description} (${group.memberCount} members)`
+              ) || []
+            },
+            {
+              title: "Industry Influencers",
+              icon: Linkedin,
+              items: events?.influencers?.map((influencer: any) =>
+                `Follow ${influencer.name}, ${influencer.title} - Expert in ${influencer.expertise.join(", ")}`
+              ) || []
+            }
           ]
         },
         {
-          title: "Online Presence",
+          title: "Content Strategy",
           description: "Strategic content sharing to build your professional brand",
-          actionItems: [
-            `Share your expertise in ${profile?.skills?.slice(0, 3).join(", ")}`,
-            "Comment on industry trends and developments",
-            "Post weekly updates about your learning journey",
-            "Engage with thought leaders in your field"
+          sections: [
+            {
+              title: "Trending Topics",
+              icon: TrendingUp,
+              items: events?.trendingTopics?.map((topic: any) =>
+                `${topic.topic}: ${topic.suggestedInteraction}`
+              ) || []
+            },
+            {
+              title: "Content Ideas",
+              icon: PenTool,
+              items: events?.contentIdeas?.map((idea: any) =>
+                `Share insights on "${idea.title}" - ${idea.description}`
+              ) || []
+            }
           ]
         }
       ]
@@ -205,21 +231,30 @@ export default function ApplicationTips() {
                     <div key={index} className="border rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
                         {index === 0 ? (
-                          <Calendar className="h-5 w-5 text-blue-500" />
+                          <Users className="h-5 w-5 text-blue-500" />
                         ) : (
-                          <Linkedin className="h-5 w-5 text-blue-500" />
+                          <PenTool className="h-5 w-5 text-blue-500" />
                         )}
                         <h3 className="font-medium">{strategy.title}</h3>
                       </div>
                       <p className="text-gray-600 mb-4">{strategy.description}</p>
-                      <div className="space-y-3">
-                        {strategy.actionItems.map((item, itemIndex) => (
-                          <div key={itemIndex} className="flex items-center gap-2">
-                            <CheckCircle className="h-5 w-5 text-green-500" />
-                            <p className="text-gray-700">{item}</p>
+
+                      {strategy.sections.map((section, sectionIndex) => (
+                        <div key={sectionIndex} className="mt-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <section.icon className="h-4 w-4 text-gray-600" />
+                            <h4 className="font-medium text-sm">{section.title}</h4>
                           </div>
-                        ))}
-                      </div>
+                          <div className="space-y-3 pl-6">
+                            {section.items.map((item, itemIndex) => (
+                              <div key={itemIndex} className="flex items-start gap-2">
+                                <CheckCircle className="h-4 w-4 text-green-500 mt-1" />
+                                <p className="text-gray-700 text-sm">{item}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   ))}
                 </div>
