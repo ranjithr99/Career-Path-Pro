@@ -27,9 +27,24 @@ export default function Home() {
         title: "Success",
         description: "Career profile uploaded successfully",
       });
-      // Invalidate and refetch career recommendations
-      await queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] });
-      // Wait for a brief moment to ensure data is available
+
+      // Invalidate all related queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/job-postings/1"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/linkedin-events/1"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/portfolio-suggestions/1"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/interview-prep/1"] })
+      ]);
+
+      // Clear cache for these queries
+      queryClient.removeQueries({ queryKey: ["/api/career-recommendations/1"] });
+      queryClient.removeQueries({ queryKey: ["/api/job-postings/1"] });
+      queryClient.removeQueries({ queryKey: ["/api/linkedin-events/1"] });
+      queryClient.removeQueries({ queryKey: ["/api/portfolio-suggestions/1"] });
+      queryClient.removeQueries({ queryKey: ["/api/interview-prep/1"] });
+
+      // Wait for cache to clear before redirecting
       setTimeout(() => setLocation("/jobs"), 1000);
     },
     onError: (error) => {
