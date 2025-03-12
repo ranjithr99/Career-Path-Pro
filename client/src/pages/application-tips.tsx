@@ -36,21 +36,162 @@ interface PortfolioSuggestion {
   }[];
 }
 
+interface NetworkingResponse {
+  upcoming: { title: string; date: string; type: string; url: string; }[];
+  groups: { name: string; description: string; memberCount: string; relevance: string; }[];
+  influencers: { name: string; title: string; expertise: string[]; reason: string; }[];
+  trendingTopics: { topic: string; description: string; suggestedInteraction: string; }[];
+  contentIdeas: { title: string; description: string; targetAudience: string; expectedImpact: string; }[];
+}
 
 export default function ApplicationTips() {
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["/api/career-recommendations/1"],
   });
 
-  const { data: events } = useQuery({
+  const { data: events, isLoading: eventsLoading, error: eventsError } = useQuery<NetworkingResponse>({
     queryKey: ["/api/linkedin-events/1"],
     enabled: !!profile,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: 3, // Retry failed requests 3 times
   });
 
   const { data: portfolioSuggestions, isLoading: suggestionsLoading } = useQuery({
     queryKey: ["/api/portfolio-suggestions/1"],
     enabled: !!profile,
   });
+
+  const NetworkingSectionLoader = () => (
+    <div className="flex items-center justify-center py-8">
+      <div className="text-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto" />
+        <p className="mt-4 text-gray-600">Loading networking suggestions...</p>
+      </div>
+    </div>
+  );
+
+  const NetworkingErrorState = () => (
+    <div className="text-center py-8">
+      <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto" />
+      <p className="mt-4 text-gray-600">Unable to load networking suggestions. Please try again later.</p>
+    </div>
+  );
+
+  const NetworkingContent = () => {
+    if (eventsLoading) return <NetworkingSectionLoader />;
+    if (eventsError || !events) return <NetworkingErrorState />;
+
+    return (
+      <div className="space-y-6">
+        <div className="border rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Users className="h-5 w-5 text-blue-500" />
+            <h3 className="font-medium">Professional Network Building</h3>
+          </div>
+          <p className="text-gray-600 mb-4">Tailored networking opportunities based on your profile</p>
+
+          {/* Upcoming Events */}
+          <div className="mt-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Calendar className="h-4 w-4 text-gray-600" />
+              <h4 className="font-medium text-sm">Upcoming Events</h4>
+            </div>
+            <div className="space-y-3 pl-6">
+              {events.upcoming?.map((event, index) => (
+                <div key={index} className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500 mt-1" />
+                  <p className="text-gray-700 text-sm">
+                    {event.title} - {event.type} on {event.date}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Recommended Groups */}
+          <div className="mt-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Users className="h-4 w-4 text-gray-600" />
+              <h4 className="font-medium text-sm">Recommended Groups</h4>
+            </div>
+            <div className="space-y-3 pl-6">
+              {events.groups?.map((group, index) => (
+                <div key={index} className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500 mt-1" />
+                  <p className="text-gray-700 text-sm">
+                    {group.name} - {group.description} ({group.memberCount} members)
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Industry Influencers */}
+          <div className="mt-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Linkedin className="h-4 w-4 text-gray-600" />
+              <h4 className="font-medium text-sm">Industry Influencers</h4>
+            </div>
+            <div className="space-y-3 pl-6">
+              {events.influencers?.map((influencer, index) => (
+                <div key={index} className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500 mt-1" />
+                  <p className="text-gray-700 text-sm">
+                    Follow {influencer.name}, {influencer.title} - Expert in {influencer.expertise.join(", ")}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Content Strategy */}
+        <div className="border rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <PenTool className="h-5 w-5 text-blue-500" />
+            <h3 className="font-medium">Content Strategy</h3>
+          </div>
+          <p className="text-gray-600 mb-4">Strategic content sharing to build your professional brand</p>
+
+          {/* Trending Topics */}
+          <div className="mt-4">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="h-4 w-4 text-gray-600" />
+              <h4 className="font-medium text-sm">Trending Topics</h4>
+            </div>
+            <div className="space-y-3 pl-6">
+              {events.trendingTopics?.map((topic, index) => (
+                <div key={index} className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500 mt-1" />
+                  <p className="text-gray-700 text-sm">
+                    {topic.topic}: {topic.suggestedInteraction}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Content Ideas */}
+          <div className="mt-4">
+            <div className="flex items-center gap-2 mb-2">
+              <PenTool className="h-4 w-4 text-gray-600" />
+              <h4 className="font-medium text-sm">Content Ideas</h4>
+            </div>
+            <div className="space-y-3 pl-6">
+              {events.contentIdeas?.map((idea, index) => (
+                <div key={index} className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500 mt-1" />
+                  <p className="text-gray-700 text-sm">
+                    {idea.title} - {idea.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   if (profileLoading || suggestionsLoading) {
     return (
@@ -335,38 +476,7 @@ export default function ApplicationTips() {
             <Card>
               <CardContent className="p-6">
                 <h2 className="text-xl font-semibold mb-4">Networking Strategy</h2>
-                <div className="space-y-6">
-                  {networkingTips.strategies.map((strategy, index) => (
-                    <div key={index} className="border rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        {index === 0 ? (
-                          <Users className="h-5 w-5 text-blue-500" />
-                        ) : (
-                          <PenTool className="h-5 w-5 text-blue-500" />
-                        )}
-                        <h3 className="font-medium">{strategy.title}</h3>
-                      </div>
-                      <p className="text-gray-600 mb-4">{strategy.description}</p>
-
-                      {strategy.sections.map((section, sectionIndex) => (
-                        <div key={sectionIndex} className="mt-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <section.icon className="h-4 w-4 text-gray-600" />
-                            <h4 className="font-medium text-sm">{section.title}</h4>
-                          </div>
-                          <div className="space-y-3 pl-6">
-                            {section.items.map((item, itemIndex) => (
-                              <div key={itemIndex} className="flex items-start gap-2">
-                                <CheckCircle className="h-4 w-4 text-green-500 mt-1" />
-                                <p className="text-gray-700 text-sm">{item}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
+                <NetworkingContent />
               </CardContent>
             </Card>
           </TabsContent>

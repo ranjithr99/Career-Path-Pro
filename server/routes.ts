@@ -350,7 +350,16 @@ ${JSON.stringify(profile.skills)}
 ${JSON.stringify(profile.experience)}
 ${JSON.stringify(profile.education)}`;
 
-      const result = await model.generateContent(prompt);
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }]}],
+        generationConfig: {
+          maxOutputTokens: 2048,
+          temperature: 0.8,
+          topK: 40,
+          topP: 0.8,
+        },
+      });
+
       const response = await result.response;
       const text = response.text();
 
