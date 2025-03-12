@@ -51,6 +51,7 @@ async function fetchJobPostings(profile: any) {
       const limit = index === 0 ? 2 : 1; // 2 jobs for first role, 1 for second
 
       try {
+        console.log(`Fetching jobs for role: ${role.title}`);
         const response = await axios.post(THEIRSTACK_API_URL, {
           page: 0,
           limit,
@@ -72,39 +73,27 @@ async function fetchJobPostings(profile: any) {
           const jobTitleLower = job.job_title.toLowerCase();
           const roleTitleLower = role.title.toLowerCase();
 
-          // Title match (50% weight)
+          // Main role match (60% weight)
           if (jobTitleLower.includes(roleTitleLower)) {
-            matchScore += 50;
-          } else if (jobTitleLower.includes('senior') && profile.experience?.length > 5) {
-            matchScore += 40;
-          } else if (!jobTitleLower.includes('senior') && profile.experience?.length <= 5) {
-            matchScore += 40;
+            matchScore += 60;
           }
 
-          // Primary skills match (30% weight)
-          const primarySkills = new Set([
-            'python',
-            'sql',
-            'etl',
-            'hadoop',
-            'spark',
-            'aws',
-            'javascript',
-            'react',
-            'node.js'
-          ]);
-
+          // Skill match (40% weight)
           const userSkills = new Set(profile.skills?.map((s: string) => s.toLowerCase()) || []);
-          const matchedSkills = Array.from(userSkills).filter(skill => primarySkills.has(skill));
-          const skillScore = Math.min(30, (matchedSkills.length / 3) * 30); // Max 30% for skills
+          const jobSkills = new Set((job.technology_slugs || []).map((s: string) => s.toLowerCase()));
+          const totalSkills = jobSkills.size || 1;
+          let matchedSkills = 0;
+
+          jobSkills.forEach((skill: string) => {
+            if (userSkills.has(skill)) {
+              matchedSkills++;
+            }
+          });
+
+          const skillScore = Math.min(40, Math.round((matchedSkills / totalSkills) * 40));
           matchScore += skillScore;
 
-          // Additional bonus (20% weight)
-          if (profile.recommendations?.recommendedRoles?.[0]?.title.toLowerCase() === roleTitleLower) {
-            matchScore += 20; // Bonus for matching top recommended role
-          }
-
-          // Determine requirements based on role
+          // Get requirements based on role
           const requirements = getRequirementsForRole(jobTitleLower);
 
           return {
@@ -118,7 +107,7 @@ async function fetchJobPostings(profile: any) {
             salary: `${job.min_annual_salary_usd ? `$${job.min_annual_salary_usd/1000}k` : ''} ${job.max_annual_salary_usd ? `- $${job.max_annual_salary_usd/1000}k` : ''}`,
             postedDate: job.date_posted,
             applicationUrl: job.url,
-            skillMatch: Math.round(matchScore),
+            skillMatch: matchScore,
             roleMatch: role.title
           };
         });
