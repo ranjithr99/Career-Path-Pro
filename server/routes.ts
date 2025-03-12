@@ -36,64 +36,80 @@ async function fetchJobPostings(profile: any) {
   const startTime = Date.now();
 
   try {
-    // Extract job titles from recommendations
-    const jobTitles = profile.recommendations?.recommendedRoles?.map((role: any) => role.title) || ["Software Engineer"];
-    console.log(`Searching for job titles:`, jobTitles);
+    // Extract job titles from recommendations (top 3)
+    const recommendedRoles = profile.recommendations?.recommendedRoles?.slice(0, 3) || [];
+    if (!recommendedRoles.length) {
+      console.log('No recommended roles found, using default');
+      recommendedRoles.push({ title: "Software Engineer" });
+    }
+    console.log(`Using recommended roles:`, recommendedRoles.map((r: any) => r.title));
 
-    const response = await axios.post(THEIRSTACK_API_URL, {
-      page: 0,
-      limit: 5, // Limiting to 5 jobs per request
-      job_title_or: jobTitles,
-      posted_at_max_age_days: 7,
-      company_country_code_or: ["US"],
-      include_total_results: true
-    }, {
-      headers: {
-        'Authorization': `Bearer ${process.env.THEIRSTACK_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      timeout: 10000 // 10 second timeout
-    });
+    // Make separate API calls for each role
+    const jobsByRole = await Promise.all(recommendedRoles.map(async (role: any, index: number) => {
+      const limit = index === 0 || index === 1 ? 2 : 1; // 2 jobs each for first two roles, 1 for the last
 
-    const endTime = Date.now();
-    console.log(`TheirStack API call completed in ${endTime - startTime}ms`);
-
-    return {
-      jobs: response.data.data.map((job: any) => {
-        const userSkills = new Set(profile.skills?.map((s: string) => s.toLowerCase()) || []);
-        const jobSkills = new Set(job.technology_slugs?.map((s: string) => s.toLowerCase()) || []);
-
-        // Calculate skill match
-        let matchedSkills = 0;
-        let totalSkills = jobSkills.size;
-
-        if (totalSkills === 0) {
-          totalSkills = 1; // Prevent division by zero
-        }
-
-        jobSkills.forEach((skill: string) => {
-          if (userSkills.has(skill)) {
-            matchedSkills++;
-          }
+      try {
+        const response = await axios.post(THEIRSTACK_API_URL, {
+          page: 0,
+          limit,
+          job_title_or: [role.title],
+          posted_at_max_age_days: 7,
+          company_country_code_or: ["US"],
+          include_total_results: true
+        }, {
+          headers: {
+            'Authorization': `Bearer ${process.env.THEIRSTACK_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 10000 // 10 second timeout
         });
 
-        const skillMatch = Math.round((matchedSkills / totalSkills) * 100);
+        return response.data.data.map((job: any) => {
+          const userSkills = new Set(profile.skills?.map((s: string) => s.toLowerCase()) || []);
+          const jobSkills = new Set(job.technology_slugs?.map((s: string) => s.toLowerCase()) || []);
 
-        return {
-          title: job.job_title,
-          company: job.company_object.name,
-          companyLogo: job.company_object.logo,
-          location: job.location || job.short_location || 'Remote',
-          type: job.remote ? 'remote' : (job.hybrid ? 'hybrid' : 'onsite'),
-          description: job.description,
-          requirements: job.technology_slugs || [],
-          salary: `${job.min_annual_salary_usd ? `$${job.min_annual_salary_usd/1000}k` : ''} ${job.max_annual_salary_usd ? `- $${job.max_annual_salary_usd/1000}k` : ''}`,
-          postedDate: job.date_posted,
-          applicationUrl: job.url,
-          skillMatch: skillMatch
-        };
-      }),
-      totalResults: response.data.metadata.total_results || 0
+          // Calculate skill match
+          let matchedSkills = 0;
+          let totalSkills = jobSkills.size || 1;
+
+          jobSkills.forEach((skill: string) => {
+            if (userSkills.has(skill)) {
+              matchedSkills++;
+            }
+          });
+
+          const skillMatch = Math.round((matchedSkills / totalSkills) * 100);
+
+          return {
+            title: job.job_title,
+            company: job.company_object.name,
+            companyLogo: job.company_object.logo,
+            location: job.location || job.short_location || 'Remote',
+            type: job.remote ? 'remote' : (job.hybrid ? 'hybrid' : 'onsite'),
+            description: job.description,
+            requirements: job.technology_slugs || [],
+            salary: `${job.min_annual_salary_usd ? `$${job.min_annual_salary_usd/1000}k` : ''} ${job.max_annual_salary_usd ? `- $${job.max_annual_salary_usd/1000}k` : ''}`,
+            postedDate: job.date_posted,
+            applicationUrl: job.url,
+            skillMatch: skillMatch,
+            roleMatch: role.title // Add role match for reference
+          };
+        });
+      } catch (error) {
+        console.error(`Error fetching jobs for role ${role.title}:`, error);
+        return [];
+      }
+    }));
+
+    // Combine all jobs
+    const allJobs = jobsByRole.flat();
+
+    const endTime = Date.now();
+    console.log(`TheirStack API calls completed in ${endTime - startTime}ms`);
+
+    return {
+      jobs: allJobs,
+      totalResults: allJobs.length
     };
   } catch (error) {
     if (axios.isAxiosError(error)) {
