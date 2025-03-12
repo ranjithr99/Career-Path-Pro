@@ -39,112 +39,99 @@ async function fetchJobPostings(profile: any) {
 
   try {
     // Extract job titles from recommendations (top 2 only since we only need 2 roles now)
-    const recommendedRoles =
-      profile.recommendations?.recommendedRoles?.slice(0, 2) || [];
+    const recommendedRoles = profile.recommendations?.recommendedRoles?.slice(0, 2) || [];
     if (!recommendedRoles.length) {
-      console.log("No recommended roles found, using default");
+      console.log('No recommended roles found, using default');
       recommendedRoles.push({ title: "Software Engineer" });
     }
-    console.log(
-      `Using recommended roles:`,
-      recommendedRoles.map((r: any) => r.title),
-    );
+    console.log(`Using recommended roles:`, recommendedRoles.map((r: any) => r.title));
 
     // Make separate API calls for each role
-    const jobsByRole = await Promise.all(
-      recommendedRoles.map(async (role: any, index: number) => {
-        const limit = index === 0 ? 2 : 1; // 2 jobs for first role, 1 for second
+    const jobsByRole = await Promise.all(recommendedRoles.map(async (role: any, index: number) => {
+      const limit = index === 0 ? 2 : 1; // 2 jobs for first role, 1 for second
 
-        try {
-          const response = await axios.post(
-            THEIRSTACK_API_URL,
-            {
-              page: 0,
-              limit,
-              job_title_or: [role.title],
-              posted_at_max_age_days: 7,
-              company_country_code_or: ["US"],
-              include_total_results: true,
-            },
-            {
-              headers: {
-                Authorization: `Bearer ${process.env.THEIRSTACK_API_KEY}`,
-                "Content-Type": "application/json",
-              },
-              timeout: 10000, // 10 second timeout
-            },
+      try {
+        const response = await axios.post(THEIRSTACK_API_URL, {
+          page: 0,
+          limit,
+          job_title_or: [role.title],
+          posted_at_max_age_days: 7,
+          company_country_code_or: ["US"],
+          include_total_results: true,
+        }, {
+          headers: {
+            Authorization: `Bearer ${process.env.THEIRSTACK_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 10000 // 10 second timeout
+        });
+
+        return response.data.data.map((job: any) => {
+          // Define default requirements based on job title
+          let defaultRequirements = [];
+          let baseMatch = 85; // High base match since it matches the recommended role
+
+          if (job.job_title.toLowerCase().includes("software engineer")) {
+            defaultRequirements = ["JavaScript", "Python", "React", "Node.js", "SQL"];
+          } else if (job.job_title.toLowerCase().includes("data engineer")) {
+            defaultRequirements = ["Python", "SQL", "ETL", "Hadoop", "Spark"];
+          } else if (job.job_title.toLowerCase().includes("cloud engineer")) {
+            defaultRequirements = ["AWS", "Azure", "Kubernetes", "Docker", "Terraform"];
+          } else if (job.job_title.toLowerCase().includes("frontend")) {
+            defaultRequirements = ["React", "JavaScript", "HTML", "CSS", "TypeScript"];
+          } else if (job.job_title.toLowerCase().includes("backend")) {
+            defaultRequirements = ["Node.js", "Python", "Java", "SQL", "REST APIs"];
+          } else {
+            defaultRequirements = ["Programming", "Problem Solving", "Communication", "Git"];
+            baseMatch = 75; // Lower base match for unknown roles
+          }
+
+          // Calculate skill match percentage
+          const userSkills = new Set(profile.skills?.map((s: string) => s.toLowerCase()) || []);
+          let skillMatchScore = 0;
+          let totalSkills = defaultRequirements.length;
+
+          defaultRequirements.forEach(skill => {
+            const skillLower = skill.toLowerCase();
+            if (userSkills.has(skillLower)) {
+              skillMatchScore++;
+            }
+          });
+
+          // Calculate weighted match score
+          const titleMatch = role.title.toLowerCase() === job.job_title.toLowerCase() ? 100 : 80;
+          const skillMatch = (skillMatchScore / totalSkills) * 100;
+
+          // Final score is weighted average:
+          // - 40% title match
+          // - 40% skill match
+          // - 20% base match (for being in recommended roles)
+          const finalMatch = Math.round(
+            (titleMatch * 0.4) + 
+            (skillMatch * 0.4) + 
+            (baseMatch * 0.2)
           );
 
-          return response.data.data.map((job: any) => {
-            // Define default requirements based on job title
-            let defaultRequirements = [];
-            let baseMatch = 85; // High base match since it matches the recommended role
-
-            if (job.job_title.toLowerCase().includes("software engineer")) {
-              defaultRequirements = [
-                "JavaScript",
-                "Python",
-                "React",
-                "Node.js",
-                "SQL",
-              ];
-            } else if (job.job_title.toLowerCase().includes("data engineer")) {
-              defaultRequirements = ["Python", "SQL", "ETL", "Hadoop", "Spark"];
-            } else if (job.job_title.toLowerCase().includes("cloud engineer")) {
-              defaultRequirements = [
-                "AWS",
-                "Azure",
-                "Kubernetes",
-                "Docker",
-                "Terraform",
-              ];
-            } else if (job.job_title.toLowerCase().includes("frontend")) {
-              defaultRequirements = [
-                "React",
-                "JavaScript",
-                "HTML",
-                "CSS",
-                "TypeScript",
-              ];
-            } else if (job.job_title.toLowerCase().includes("backend")) {
-              defaultRequirements = [
-                "Node.js",
-                "Python",
-                "Java",
-                "SQL",
-                "REST APIs",
-              ];
-            } else {
-              defaultRequirements = [
-                "Programming",
-                "Problem Solving",
-                "Communication",
-                "Git",
-              ];
-              baseMatch = 75; // Lower base match for unknown roles
-            }
-
-            return {
-              title: job.job_title,
-              company: job.company_object.name,
-              companyLogo: job.company_object.logo,
-              location: job.location || job.short_location || "Remote",
-              type: job.remote ? "remote" : job.hybrid ? "hybrid" : "onsite",
-              description: job.description,
-              requirements: defaultRequirements,
-              salary: `${job.min_annual_salary_usd ? `$${job.min_annual_salary_usd / 1000}k` : ""} ${job.max_annual_salary_usd ? `- $${job.max_annual_salary_usd / 1000}k` : ""}`,
-              postedDate: job.date_posted,
-              applicationUrl: job.url,
-              skillMatch: baseMatch,
-              roleMatch: role.title,
-            };
-          });
-        } catch (error) {
-          console.error(`Error fetching jobs for role ${role.title}:`, error);
-          return [];
-        }
-      }),
-    );
+          return {
+            title: job.job_title,
+            company: job.company_object.name,
+            companyLogo: job.company_object.logo,
+            location: job.location || job.short_location || 'Remote',
+            type: job.remote ? 'remote' : (job.hybrid ? 'hybrid' : 'onsite'),
+            description: job.description,
+            requirements: defaultRequirements,
+            salary: `${job.min_annual_salary_usd ? `$${job.min_annual_salary_usd/1000}k` : ''} ${job.max_annual_salary_usd ? `- $${job.max_annual_salary_usd/1000}k` : ''}`,
+            postedDate: job.date_posted,
+            applicationUrl: job.url,
+            skillMatch: finalMatch,
+            roleMatch: role.title
+          };
+        });
+      } catch (error) {
+        console.error(`Error fetching jobs for role ${role.title}:`, error);
+        return [];
+      }
+    }));
 
     // Combine all jobs
     const allJobs = jobsByRole.flat();
@@ -154,7 +141,7 @@ async function fetchJobPostings(profile: any) {
 
     return {
       jobs: allJobs,
-      totalResults: allJobs.length,
+      totalResults: allJobs.length
     };
   } catch (error) {
     if (axios.isAxiosError(error)) {
