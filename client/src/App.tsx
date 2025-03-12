@@ -7,7 +7,7 @@ import Home from "@/pages/home";
 import Jobs from "@/pages/jobs";
 import InterviewPrep from "@/pages/interview-prep";
 import ApplicationTips from "@/pages/application-tips";
-import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
+import { NavigationMenu, NavigationMenuList, NavigationMenuItem } from "@/components/ui/navigation-menu";
 import { Link } from "wouter";
 
 function Navigation() {
@@ -18,40 +18,40 @@ function Navigation() {
   const hasProfile = !!profile;
 
   return (
-    <NavigationMenu className="p-4">
+    <NavigationMenu>
       <NavigationMenuList>
         <NavigationMenuItem className="mr-auto">
           <Link href="/">
-            <a className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text hover:scale-105 transition-transform duration-200 decoration-transparent">
+            <a className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text hover:scale-105 transition-transform duration-200 decoration-transparent pl-8">
               CareerPath Pro
             </a>
           </Link>
         </NavigationMenuItem>
 
         {hasProfile && (
-          <>
+          <div className="flex items-center gap-6 pr-8">
             <NavigationMenuItem>
               <Link href="/jobs">
-                <NavigationMenuLink className="hover:scale-105 transition-all duration-200">
+                <a className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-transparent hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 hover:bg-clip-text transition-all duration-300 hover:scale-105">
                   Jobs
-                </NavigationMenuLink>
+                </a>
               </Link>
             </NavigationMenuItem>
             <NavigationMenuItem>
               <Link href="/interview-prep">
-                <NavigationMenuLink className="hover:scale-105 transition-all duration-200">
+                <a className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-transparent hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 hover:bg-clip-text transition-all duration-300 hover:scale-105">
                   Interview Prep
-                </NavigationMenuLink>
+                </a>
               </Link>
             </NavigationMenuItem>
             <NavigationMenuItem>
               <Link href="/application-tips">
-                <NavigationMenuLink className="hover:scale-105 transition-all duration-200">
+                <a className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-transparent hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 hover:bg-clip-text transition-all duration-300 hover:scale-105">
                   Application Tips
-                </NavigationMenuLink>
+                </a>
               </Link>
             </NavigationMenuItem>
-          </>
+          </div>
         )}
       </NavigationMenuList>
     </NavigationMenu>
