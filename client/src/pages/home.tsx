@@ -87,7 +87,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-500 to-purple-500"> {/* Added gradient background */}
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white"> {/* Changed background */}
       <div className="max-w-4xl mx-auto pt-16 px-4">
         <h1 className="text-5xl font-bold text-center mb-4 bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text transform hover:scale-105 transition-transform duration-200">
           CareerPath Pro

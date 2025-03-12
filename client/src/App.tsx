@@ -20,9 +20,11 @@ function Navigation() {
   return (
     <NavigationMenu className="p-4">
       <NavigationMenuList>
-        <NavigationMenuItem>
+        <NavigationMenuItem className="mr-auto">
           <Link href="/">
-            <NavigationMenuLink>Home</NavigationMenuLink>
+            <a className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text hover:scale-105 transition-transform duration-200 decoration-transparent">
+              CareerPath Pro
+            </a>
           </Link>
         </NavigationMenuItem>
 
@@ -30,17 +32,23 @@ function Navigation() {
           <>
             <NavigationMenuItem>
               <Link href="/jobs">
-                <NavigationMenuLink>Jobs</NavigationMenuLink>
+                <NavigationMenuLink className="hover:scale-105 transition-all duration-200">
+                  Jobs
+                </NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
             <NavigationMenuItem>
               <Link href="/interview-prep">
-                <NavigationMenuLink>Interview Prep</NavigationMenuLink>
+                <NavigationMenuLink className="hover:scale-105 transition-all duration-200">
+                  Interview Prep
+                </NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
             <NavigationMenuItem>
               <Link href="/application-tips">
-                <NavigationMenuLink>Application Tips</NavigationMenuLink>
+                <NavigationMenuLink className="hover:scale-105 transition-all duration-200">
+                  Application Tips
+                </NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
           </>
