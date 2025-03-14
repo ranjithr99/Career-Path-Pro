@@ -38,9 +38,8 @@ async function fetchJobPostings(profile: any) {
   const startTime = Date.now();
 
   try {
-    // Extract job titles from recommendations (top 2 only since we only need 2 roles now)
-    const recommendedRoles =
-      profile.recommendations?.recommendedRoles?.slice(0, 2) || [];
+    // Extract unique job titles from recommendations
+    const recommendedRoles = profile.recommendations?.recommendedRoles || [];
     if (!recommendedRoles.length) {
       console.log("No recommended roles found, using default");
       recommendedRoles.push({ title: "Software Engineer" });
@@ -50,17 +49,15 @@ async function fetchJobPostings(profile: any) {
       recommendedRoles.map((r: any) => r.title),
     );
 
-    // Make separate API calls for each role
+    // Make separate API calls for each unique role title
     const jobsByRole = await Promise.all(
-      recommendedRoles.map(async (role: any, index: number) => {
-        const limit = index === 0 ? 2 : 1; // 2 jobs for first role, 1 for second
-
+      recommendedRoles.map(async (role: any) => {
         try {
           const response = await axios.post(
             THEIRSTACK_API_URL,
             {
               page: 0,
-              limit,
+              limit: 1, // Only fetch one job per role
               job_title_or: [role.title],
               posted_at_max_age_days: 7,
               company_country_code_or: ["US"],
@@ -393,7 +390,6 @@ ${JSON.stringify(profile, null, 2)}`;
     }
   });
 
-  // Add new resume feedback endpoint
   app.get("/api/resume-feedback/:userId", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
@@ -403,7 +399,14 @@ ${JSON.stringify(profile, null, 2)}`;
         return res.status(404).json({ message: "Profile not found" });
       }
 
-      const prompt = `You are a professional resume reviewer. Based on this resume text, provide detailed, constructive feedback for improvement. Focus on content, structure, and impact. Return only a JSON object with this structure:
+      const prompt = `You are a professional resume reviewer tasked with providing constructive feedback and a fair impact score. When calculating the impact score:
+- Start with a base score of 75
+- Add points for positive elements (skills matching industry standards, quantifiable achievements, clear progression)
+- Subtract points only for significant issues
+- The final score should typically fall between 65-95, with most resumes scoring 75-85
+- A score below 70 should only be given if there are major structural issues
+
+Based on this resume text, provide detailed, constructive feedback for improvement. Return only a JSON object with this structure:
 {
   "overview": {
     "strengths": string[],
@@ -454,7 +457,6 @@ ${profile.resumeText}`;
     }
   });
 
-  // Update LinkedIn events endpoint to filter for future dates
   app.get("/api/linkedin-events/:userId", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
