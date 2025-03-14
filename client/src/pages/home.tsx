@@ -16,19 +16,11 @@ export default function Home() {
   const selectedFile = watch("resume");
   const queryClient = useQueryClient();
 
-  // Update the useEffect hook to handle complete cache clearing
+  // Clear all cached data when component mounts
   React.useEffect(() => {
-    // Clear all cached data
     queryClient.clear();
-
-    // Remove all local storage flags
     localStorage.removeItem('hasProfile');
     localStorage.removeItem('currentSessionUpload');
-
-    // Invalidate and remove all queries to ensure fresh state
-    queryClient.removeQueries();
-
-    console.log('Application state completely reset on page load');
   }, [queryClient]);
 
   const { data: profile } = useQuery({
@@ -45,18 +37,14 @@ export default function Home() {
         description: "Career profile uploaded successfully",
       });
 
-      // Reset form
-      reset();
-
-      // Clear any existing queries before setting new data
-      await queryClient.cancelQueries();
-      await queryClient.removeQueries();
-
-      // Set session flags only after successful upload
+      // Set session flags
       localStorage.setItem('hasProfile', 'true');
       localStorage.setItem('currentSessionUpload', 'true');
 
-      // Invalidate and refetch career recommendations
+      // Reset form
+      reset();
+
+      // Refetch profile data before navigation
       await queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] });
 
       // Navigate to jobs page
@@ -81,7 +69,7 @@ export default function Home() {
     },
     {
       title: "Mentorship Simulation",
-      description: "Industry-specific career advice powered by advanced reasoning models, with regular progress updates and recommendations"
+      description: "Industry-specific career advice powered by advanced reasoning models"
     },
     {
       title: "Interview Preparation",
@@ -93,7 +81,6 @@ export default function Home() {
     }
   ];
 
-  // Update submit handler
   const onSubmit = async (data: any) => {
     try {
       if (!data.resume?.[0]) {
@@ -104,14 +91,6 @@ export default function Home() {
         });
         return;
       }
-
-      console.log("Starting new resume upload, clearing existing data...");
-
-      // Clear all existing data before new upload
-      await queryClient.cancelQueries();
-      await queryClient.removeQueries();
-      localStorage.removeItem('hasProfile');
-      localStorage.removeItem('currentSessionUpload');
 
       const formData = new FormData();
       formData.append("resume", data.resume[0]);
