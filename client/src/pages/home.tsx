@@ -37,29 +37,18 @@ export default function Home() {
         description: "Career profile uploaded successfully",
       });
 
-      // Reset form
-      reset();
-
-      // Set profile indicators
+      // Set session flags
       localStorage.setItem('hasProfile', 'true');
       localStorage.setItem('currentSessionUpload', 'true');
 
-      // Wait for data to be processed and then navigate
-      try {
-        // Invalidate and wait for the query to complete
-        await queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] });
-        await new Promise(resolve => setTimeout(resolve, 500));
+      // Reset form
+      reset();
 
-        // Navigate to jobs page
-        setLocation("/jobs");
-      } catch (error) {
-        console.error("Error after upload:", error);
-        toast({
-          title: "Navigation Error",
-          description: "Please try refreshing the page",
-          variant: "destructive",
-        });
-      }
+      // Refetch profile data before navigation
+      await queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] });
+
+      // Navigate to jobs page
+      setLocation("/jobs");
     },
     onError: (error) => {
       console.error("Upload error:", error);
