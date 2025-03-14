@@ -6,14 +6,6 @@ import multer from "multer";
 import { insertCareerProfileSchema } from "@shared/schema";
 import axios from "axios";
 
-// Add this helper function at the top of the file, after imports
-function sanitizeJsonResponse(text: string): string {
-  // Remove any control characters that could break JSON parsing
-  return text.replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
-    .replace(/\\[^\\"\/bfnrtu]/g, "\\\\") // Escape any invalid escape sequences
-    .trim();
-}
-
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
@@ -279,7 +271,7 @@ ${resumeText}`;
 
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      const text = sanitizeJsonResponse(response.text());
+      const text = response.text();
 
       // Extract JSON from the response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -287,37 +279,26 @@ ${resumeText}`;
         throw new Error("Failed to parse AI response as JSON");
       }
 
-      try {
-        const parsedAnalysis = JSON.parse(jsonMatch[0]);
-        console.log("Successfully analyzed resume with Gemini");
+      const parsedAnalysis = JSON.parse(jsonMatch[0]);
+      console.log("Successfully analyzed resume with Gemini");
 
-        // Create or update career profile, ensuring all previous analysis is cleared
-        const profile = await storage.createCareerProfile({
-          userId,
-          resumeText,
-          linkedinUrl,
-          githubUsername,
-          skills: parsedAnalysis.skills,
-          experience: parsedAnalysis.experience,
-          education: parsedAnalysis.education,
-          // Explicitly reset all analysis fields
-          recommendations: null,
-          interviewPrep: null,
-          portfolioSuggestions: null,
-          analyzedSkills: null,
-          targetRoles: null
-        });
+      // Create or update career profile
+      const profile = await storage.createCareerProfile({
+        userId,
+        resumeText,
+        linkedinUrl,
+        githubUsername,
+        skills: parsedAnalysis.skills,
+        experience: parsedAnalysis.experience,
+        education: parsedAnalysis.education,
+      });
 
-        console.log("Successfully created/updated career profile", {
-          profileId: profile.id,
-          isNew: !existingProfile,
-        });
+      console.log("Successfully created/updated career profile", {
+        profileId: profile.id,
+        isNew: !existingProfile,
+      });
 
-        res.json(profile);
-      } catch (parseError) {
-        console.error("JSON parsing error:", parseError);
-        throw new Error(`Failed to parse resume analysis: ${parseError.message}`);
-      }
+      res.json(profile);
     } catch (error) {
       console.error("Error processing career profile:", error);
       res.status(500).json({
@@ -594,8 +575,7 @@ Career Goals: ${JSON.stringify(profile.recommendations?.recommendedRoles || [])}
       }
 
       // Generate portfolio suggestions using Gemini
-      const prompt = `Based on this career profile, suggest personalized portfolio projects that align with their target roles. 
-Format your response as a JSON object with this EXACT structure and ONLY these fields, nothing else:
+      const prompt = `Based on this career profile, suggest personalized portfolio projects that align with their target roles. Return only a JSON object with this exact structure, nothing else:
 {
   "suggestedProjects": [
     {
@@ -647,26 +627,21 @@ Profile Details:
         const parsedSuggestions = JSON.parse(jsonMatch[0]);
 
         // Validate the response structure
-        if (!parsedSuggestions.suggestedProjects || !parsedSuggestions.skillGaps ||
-            !Array.isArray(parsedSuggestions.suggestedProjects) || !Array.isArray(parsedSuggestions.skillGaps)) {
+        if (
+          !parsedSuggestions.suggestedProjects ||
+          !parsedSuggestions.skillGaps
+        ) {
           throw new Error("Invalid response structure");
         }
 
-        // Validate each project has required fields
-        parsedSuggestions.suggestedProjects.forEach((project: any) => {
-          if (!project.title || !project.description || !project.timeEstimate || 
-              !Array.isArray(project.technologies) || !Array.isArray(project.learningOutcomes) ||
-              !project.implementation || !Array.isArray(project.implementation.features) ||
-              !Array.isArray(project.implementation.challenges)) {
-            throw new Error("Invalid project structure");
-          }
-        });
-
         // Add recommended role context to each project
-        parsedSuggestions.suggestedProjects = parsedSuggestions.suggestedProjects.map((project) => ({
-          ...project,
-          targetRole: profile.recommendations?.recommendedRoles?.[0]?.title || "Software Engineer",
-        }));
+        parsedSuggestions.suggestedProjects =
+          parsedSuggestions.suggestedProjects.map((project) => ({
+            ...project,
+            targetRole:
+              profile.recommendations?.recommendedRoles?.[0]?.title ||
+              "Software Engineer",
+          }));
 
         res.json(parsedSuggestions);
       } catch (error) {

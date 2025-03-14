@@ -16,15 +16,14 @@ export default function Home() {
   const selectedFile = watch("resume");
   const queryClient = useQueryClient();
 
-  // Clear all cached data when component mounts
+  // Clear all query cache when component mounts (page load/refresh)
   React.useEffect(() => {
-    queryClient.clear();
-    localStorage.removeItem('hasProfile');
-    localStorage.removeItem('currentSessionUpload');
+    queryClient.clear(); // This removes all cached data
+    localStorage.removeItem('hasProfile'); // Clear profile indicator
   }, [queryClient]);
 
   const { data: profile } = useQuery({
-    queryKey: ["/api/career-recommendations/1"],
+    queryKey: ["/api/career-recommendations/1"], // TODO: Get user ID from auth
   });
 
   const uploadMutation = useMutation({
@@ -37,14 +36,13 @@ export default function Home() {
         description: "Career profile uploaded successfully",
       });
 
-      // Set session flags
-      localStorage.setItem('hasProfile', 'true');
-      localStorage.setItem('currentSessionUpload', 'true');
-
       // Reset form
       reset();
 
-      // Refetch profile data before navigation
+      // Set profile indicator
+      localStorage.setItem('hasProfile', 'true');
+
+      // Invalidate and refetch career recommendations
       await queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] });
 
       // Navigate to jobs page
@@ -60,7 +58,7 @@ export default function Home() {
     }
   });
 
-  const hasProfile = !!profile && localStorage.getItem('currentSessionUpload') === 'true';
+  const hasProfile = !!profile;
 
   const features = [
     {
@@ -69,7 +67,7 @@ export default function Home() {
     },
     {
       title: "Mentorship Simulation",
-      description: "Industry-specific career advice powered by advanced reasoning models"
+      description: "Industry-specific career advice powered by advanced reasoning models, with regular progress updates and recommendations"
     },
     {
       title: "Interview Preparation",

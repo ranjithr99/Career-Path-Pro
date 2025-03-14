@@ -6,17 +6,14 @@ import { Loader2 } from 'lucide-react';
 export const withProfileRequired = (WrappedComponent: React.ComponentType) => {
   return function WithProfileRequired(props: any) {
     const [, setLocation] = useLocation();
-
-    // Check both the profile data and the current session upload status
+    
     const { data: profile, isLoading } = useQuery({
       queryKey: ["/api/career-recommendations/1"],
     });
 
     React.useEffect(() => {
-      const hasUploadedThisSession = localStorage.getItem('currentSessionUpload');
-
-      if (!isLoading && (!profile || !hasUploadedThisSession)) {
-        // No profile or no upload in current session, redirect to home
+      if (!isLoading && !profile) {
+        // No profile found, redirect to home
         setLocation('/');
       }
     }, [profile, isLoading, setLocation]);
@@ -32,8 +29,7 @@ export const withProfileRequired = (WrappedComponent: React.ComponentType) => {
       );
     }
 
-    const hasUploadedThisSession = localStorage.getItem('currentSessionUpload');
-    if (!profile || !hasUploadedThisSession) {
+    if (!profile) {
       return null; // Will redirect in useEffect
     }
 
