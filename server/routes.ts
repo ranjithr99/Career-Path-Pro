@@ -291,6 +291,10 @@ ${resumeText}`;
         skills: parsedAnalysis.skills,
         experience: parsedAnalysis.experience,
         education: parsedAnalysis.education,
+        // Reset any existing recommendations or other cached data
+        recommendations: null,
+        interviewPrep: null,
+        portfolioSuggestions: null
       });
 
       console.log("Successfully created/updated career profile", {
@@ -575,7 +579,8 @@ Career Goals: ${JSON.stringify(profile.recommendations?.recommendedRoles || [])}
       }
 
       // Generate portfolio suggestions using Gemini
-      const prompt = `Based on this career profile, suggest personalized portfolio projects that align with their target roles. Return only a JSON object with this exact structure, nothing else:
+      const prompt = `Based on this career profile, suggest personalized portfolio projects that align with their target roles. 
+Format your response as a JSON object with this EXACT structure and ONLY these fields, nothing else:
 {
   "suggestedProjects": [
     {
@@ -627,21 +632,26 @@ Profile Details:
         const parsedSuggestions = JSON.parse(jsonMatch[0]);
 
         // Validate the response structure
-        if (
-          !parsedSuggestions.suggestedProjects ||
-          !parsedSuggestions.skillGaps
-        ) {
+        if (!parsedSuggestions.suggestedProjects || !parsedSuggestions.skillGaps ||
+            !Array.isArray(parsedSuggestions.suggestedProjects) || !Array.isArray(parsedSuggestions.skillGaps)) {
           throw new Error("Invalid response structure");
         }
 
+        // Validate each project has required fields
+        parsedSuggestions.suggestedProjects.forEach((project: any) => {
+          if (!project.title || !project.description || !project.timeEstimate || 
+              !Array.isArray(project.technologies) || !Array.isArray(project.learningOutcomes) ||
+              !project.implementation || !Array.isArray(project.implementation.features) ||
+              !Array.isArray(project.implementation.challenges)) {
+            throw new Error("Invalid project structure");
+          }
+        });
+
         // Add recommended role context to each project
-        parsedSuggestions.suggestedProjects =
-          parsedSuggestions.suggestedProjects.map((project) => ({
-            ...project,
-            targetRole:
-              profile.recommendations?.recommendedRoles?.[0]?.title ||
-              "Software Engineer",
-          }));
+        parsedSuggestions.suggestedProjects = parsedSuggestions.suggestedProjects.map((project) => ({
+          ...project,
+          targetRole: profile.recommendations?.recommendedRoles?.[0]?.title || "Software Engineer",
+        }));
 
         res.json(parsedSuggestions);
       } catch (error) {
