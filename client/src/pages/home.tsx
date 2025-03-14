@@ -20,32 +20,6 @@ export default function Home() {
     queryKey: ["/api/career-recommendations/1"], // TODO: Get user ID from auth
   });
 
-  // Function to clear all application state
-  const clearApplicationState = async () => {
-    console.log("Clearing application state...");
-
-    // Cancel any ongoing queries
-    await queryClient.cancelQueries();
-
-    // Remove all cached data
-    await queryClient.removeQueries();
-
-    // Clear local storage (if any resume-related data is stored)
-    localStorage.removeItem('lastResumeUpload');
-
-    // Invalidate and refetch all queries to ensure fresh state
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] }),
-      queryClient.invalidateQueries({ queryKey: ["/api/resume-feedback/1"] }),
-      queryClient.invalidateQueries({ queryKey: ["/api/job-postings/1"] }),
-      queryClient.invalidateQueries({ queryKey: ["/api/interview-prep/1"] }),
-      queryClient.invalidateQueries({ queryKey: ["/api/linkedin-events/1"] }),
-      queryClient.invalidateQueries({ queryKey: ["/api/portfolio-suggestions/1"] })
-    ]);
-
-    console.log("Application state cleared successfully");
-  };
-
   const uploadMutation = useMutation({
     mutationFn: uploadCareerProfile,
     onSuccess: async () => {
@@ -56,14 +30,14 @@ export default function Home() {
         description: "Career profile uploaded successfully",
       });
 
-      // Clear all existing application state
-      await clearApplicationState();
-
-      // Reset form only after successful upload and state clearing
+      // Reset form
       reset();
 
-      // Wait for a brief moment to ensure data is available
-      setTimeout(() => setLocation("/jobs"), 1000);
+      // Invalidate and refetch career recommendations
+      await queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] });
+
+      // Navigate to jobs page
+      setLocation("/jobs");
     },
     onError: (error) => {
       console.error("Upload error:", error);
@@ -74,16 +48,6 @@ export default function Home() {
       });
     }
   });
-
-  // Clear all cached data when component mounts, but don't reset form
-  React.useEffect(() => {
-    const initializeState = async () => {
-      await queryClient.cancelQueries();
-      await queryClient.removeQueries();
-      await queryClient.invalidateQueries();
-    };
-    initializeState();
-  }, [queryClient]);
 
   const hasProfile = !!profile;
 
@@ -116,8 +80,6 @@ export default function Home() {
         });
         return;
       }
-
-      console.log("New resume upload initiated");
 
       const formData = new FormData();
       formData.append("resume", data.resume[0]);
