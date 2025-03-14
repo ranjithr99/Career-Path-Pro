@@ -16,16 +16,19 @@ export default function Home() {
   const selectedFile = watch("resume");
   const queryClient = useQueryClient();
 
-  // Clear all query cache and session flags when component mounts (page load/refresh)
+  // Update the useEffect hook to handle complete cache clearing
   React.useEffect(() => {
     // Clear all cached data
     queryClient.clear();
 
-    // Clear all profile-related flags
+    // Remove all local storage flags
     localStorage.removeItem('hasProfile');
     localStorage.removeItem('currentSessionUpload');
 
-    console.log('Application state reset on page load');
+    // Invalidate and remove all queries to ensure fresh state
+    queryClient.removeQueries();
+
+    console.log('Application state completely reset on page load');
   }, [queryClient]);
 
   const { data: profile } = useQuery({
@@ -45,7 +48,11 @@ export default function Home() {
       // Reset form
       reset();
 
-      // Set both profile indicator and current session upload flag
+      // Clear any existing queries before setting new data
+      await queryClient.cancelQueries();
+      await queryClient.removeQueries();
+
+      // Set session flags only after successful upload
       localStorage.setItem('hasProfile', 'true');
       localStorage.setItem('currentSessionUpload', 'true');
 
@@ -86,6 +93,7 @@ export default function Home() {
     }
   ];
 
+  // Update submit handler
   const onSubmit = async (data: any) => {
     try {
       if (!data.resume?.[0]) {
@@ -96,6 +104,14 @@ export default function Home() {
         });
         return;
       }
+
+      console.log("Starting new resume upload, clearing existing data...");
+
+      // Clear all existing data before new upload
+      await queryClient.cancelQueries();
+      await queryClient.removeQueries();
+      localStorage.removeItem('hasProfile');
+      localStorage.removeItem('currentSessionUpload');
 
       const formData = new FormData();
       formData.append("resume", data.resume[0]);

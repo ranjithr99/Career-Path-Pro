@@ -6,6 +6,14 @@ import multer from "multer";
 import { insertCareerProfileSchema } from "@shared/schema";
 import axios from "axios";
 
+// Add this helper function at the top of the file, after imports
+function sanitizeJsonResponse(text: string): string {
+  // Remove any control characters that could break JSON parsing
+  return text.replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
+    .replace(/\\[^\\"\/bfnrtu]/g, "\\\\") // Escape any invalid escape sequences
+    .trim();
+}
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
@@ -271,7 +279,7 @@ ${resumeText}`;
 
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      const text = response.text();
+      const text = sanitizeJsonResponse(response.text());
 
       // Extract JSON from the response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -279,30 +287,37 @@ ${resumeText}`;
         throw new Error("Failed to parse AI response as JSON");
       }
 
-      const parsedAnalysis = JSON.parse(jsonMatch[0]);
-      console.log("Successfully analyzed resume with Gemini");
+      try {
+        const parsedAnalysis = JSON.parse(jsonMatch[0]);
+        console.log("Successfully analyzed resume with Gemini");
 
-      // Create or update career profile
-      const profile = await storage.createCareerProfile({
-        userId,
-        resumeText,
-        linkedinUrl,
-        githubUsername,
-        skills: parsedAnalysis.skills,
-        experience: parsedAnalysis.experience,
-        education: parsedAnalysis.education,
-        // Reset any existing recommendations or other cached data
-        recommendations: null,
-        interviewPrep: null,
-        portfolioSuggestions: null
-      });
+        // Create or update career profile, ensuring all previous analysis is cleared
+        const profile = await storage.createCareerProfile({
+          userId,
+          resumeText,
+          linkedinUrl,
+          githubUsername,
+          skills: parsedAnalysis.skills,
+          experience: parsedAnalysis.experience,
+          education: parsedAnalysis.education,
+          // Explicitly reset all analysis fields
+          recommendations: null,
+          interviewPrep: null,
+          portfolioSuggestions: null,
+          analyzedSkills: null,
+          targetRoles: null
+        });
 
-      console.log("Successfully created/updated career profile", {
-        profileId: profile.id,
-        isNew: !existingProfile,
-      });
+        console.log("Successfully created/updated career profile", {
+          profileId: profile.id,
+          isNew: !existingProfile,
+        });
 
-      res.json(profile);
+        res.json(profile);
+      } catch (parseError) {
+        console.error("JSON parsing error:", parseError);
+        throw new Error(`Failed to parse resume analysis: ${parseError.message}`);
+      }
     } catch (error) {
       console.error("Error processing career profile:", error);
       res.status(500).json({
