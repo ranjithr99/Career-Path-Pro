@@ -275,7 +275,7 @@ ${resumeText}`;
       const parsedAnalysis = JSON.parse(jsonMatch[0]);
       console.log("Successfully analyzed resume with Gemini");
 
-      // Create or update career profile
+      // Create or update career profile with completely new data
       const profile = await storage.createCareerProfile({
         userId: 1, // TODO: Get from auth
         resumeText,
@@ -284,6 +284,9 @@ ${resumeText}`;
         skills: parsedAnalysis.skills,
         experience: parsedAnalysis.experience,
         education: parsedAnalysis.education,
+        // Reset all derived data to ensure fresh analysis
+        recommendations: null,
+        interviewPrep: null,
       });
 
       console.log("Successfully created career profile", {
