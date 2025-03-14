@@ -18,7 +18,7 @@ export default function Home() {
 
   // Clear all cached data when component mounts
   React.useEffect(() => {
-    queryClient.clear();
+    queryClient.clear(); // This removes all cached data
     localStorage.removeItem('hasProfile');
     localStorage.removeItem('currentSessionUpload');
   }, [queryClient]);
@@ -37,12 +37,12 @@ export default function Home() {
         description: "Career profile uploaded successfully",
       });
 
+      // Reset form
+      reset();
+
       // Set session flags
       localStorage.setItem('hasProfile', 'true');
       localStorage.setItem('currentSessionUpload', 'true');
-
-      // Reset form
-      reset();
 
       // Refetch profile data before navigation
       await queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] });
@@ -91,6 +91,11 @@ export default function Home() {
         });
         return;
       }
+
+      // Clear all existing queries before new upload
+      await queryClient.cancelQueries();
+      await queryClient.removeQueries();
+      queryClient.clear();
 
       const formData = new FormData();
       formData.append("resume", data.resume[0]);
