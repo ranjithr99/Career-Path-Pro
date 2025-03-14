@@ -18,7 +18,7 @@ export default function Home() {
 
   // Clear all cached data when component mounts
   React.useEffect(() => {
-    queryClient.clear(); // This removes all cached data
+    queryClient.clear();
     localStorage.removeItem('hasProfile');
     localStorage.removeItem('currentSessionUpload');
   }, [queryClient]);
@@ -44,14 +44,22 @@ export default function Home() {
       localStorage.setItem('hasProfile', 'true');
       localStorage.setItem('currentSessionUpload', 'true');
 
-      // Wait for a brief moment to ensure data is processed
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait for data to be processed and then navigate
+      try {
+        // Invalidate and wait for the query to complete
+        await queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] });
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Invalidate queries to ensure fresh data
-      await queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] });
-
-      // Navigate to jobs page
-      setLocation("/jobs");
+        // Navigate to jobs page
+        setLocation("/jobs");
+      } catch (error) {
+        console.error("Error after upload:", error);
+        toast({
+          title: "Navigation Error",
+          description: "Please try refreshing the page",
+          variant: "destructive",
+        });
+      }
     },
     onError: (error) => {
       console.error("Upload error:", error);
