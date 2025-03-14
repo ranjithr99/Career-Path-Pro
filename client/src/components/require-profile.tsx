@@ -7,9 +7,12 @@ export const withProfileRequired = (WrappedComponent: React.ComponentType) => {
   return function WithProfileRequired(props: any) {
     const [, setLocation] = useLocation();
 
+    // Get current profile ID from localStorage
+    const currentProfileId = localStorage.getItem('currentProfileId') || '1';
+
     // Check both the profile data and the current session upload status
     const { data: profile, isLoading } = useQuery({
-      queryKey: ["/api/career-recommendations/1"],
+      queryKey: [`/api/career-recommendations/${currentProfileId}`],
       // Disable automatic background refetching
       refetchOnWindowFocus: false,
       refetchOnMount: false,
@@ -20,7 +23,7 @@ export const withProfileRequired = (WrappedComponent: React.ComponentType) => {
       // Add timestamp to force fresh request
       queryFn: async () => {
         const timestamp = Date.now();
-        const response = await fetch(`/api/career-recommendations/1?t=${timestamp}`);
+        const response = await fetch(`/api/career-recommendations/${currentProfileId}?t=${timestamp}`);
         if (!response.ok) throw new Error('Failed to fetch profile');
         return response.json();
       }

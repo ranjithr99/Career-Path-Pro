@@ -21,25 +21,15 @@ export default function Home() {
     queryClient.clear(); // This removes all cached data
     localStorage.removeItem('hasProfile');
     localStorage.removeItem('currentSessionUpload');
+    localStorage.removeItem('currentProfileId'); // Clear the stored profile ID
 
     // Force immediate cache invalidation for all endpoints
     queryClient.invalidateQueries();
   }, [queryClient]);
 
-  const { data: profile } = useQuery({
-    queryKey: ["/api/career-recommendations/1"],
-    // Disable automatic background refetching
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    staleTime: 0, // Consider data immediately stale
-    cacheTime: 0, // Don't cache at all
-    // Only fetch if we have a current session upload
-    enabled: localStorage.getItem('currentSessionUpload') === 'true'
-  });
-
   const uploadMutation = useMutation({
     mutationFn: uploadCareerProfile,
-    onSuccess: async () => {
+    onSuccess: async (response) => {
       console.log("Resume upload successful");
 
       toast({
@@ -50,11 +40,13 @@ export default function Home() {
       // Reset form
       reset();
 
-      // Set session flags only after successful upload
+      // Store the new profile ID
+      localStorage.setItem('currentProfileId', response.id.toString());
       localStorage.setItem('hasProfile', 'true');
       localStorage.setItem('currentSessionUpload', 'true');
 
-      // Force refetch of profile data before navigation
+      // Force refetch of profile data before navigation.  Note:  This still uses /api/career-recommendations/1
+      //  A more complete solution would dynamically update this based on localStorage.getItem('currentProfileId')
       await queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] });
 
       // Navigate to jobs page
@@ -70,7 +62,8 @@ export default function Home() {
     }
   });
 
-  const hasProfile = !!profile && localStorage.getItem('currentSessionUpload') === 'true';
+  const hasProfile = !!localStorage.getItem('hasProfile');
+
 
   const features = [
     {
