@@ -10,7 +10,7 @@ import { uploadCareerProfile } from "@/lib/openai";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function Home() {
-  const { register, handleSubmit, formState: { errors }, watch } = useForm();
+  const { register, handleSubmit, formState: { errors }, watch, reset } = useForm();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const selectedFile = watch("resume");
@@ -27,8 +27,20 @@ export default function Home() {
         title: "Success",
         description: "Career profile uploaded successfully",
       });
-      // Invalidate and refetch career recommendations
-      await queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] });
+
+      // Reset form data
+      reset();
+
+      // Invalidate all queries to ensure fresh data
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/resume-feedback/1"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/job-postings/1"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/interview-prep/1"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/linkedin-events/1"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/portfolio-suggestions/1"] })
+      ]);
+
       // Wait for a brief moment to ensure data is available
       setTimeout(() => setLocation("/jobs"), 1000);
     },
@@ -41,6 +53,11 @@ export default function Home() {
       });
     }
   });
+
+  // Clear all cached data when component mounts
+  React.useEffect(() => {
+    queryClient.invalidateQueries();
+  }, [queryClient]);
 
   const hasProfile = !!profile;
 
@@ -78,6 +95,10 @@ export default function Home() {
       formData.append("resume", data.resume[0]);
       formData.append("linkedinUrl", data.linkedinUrl || '');
       formData.append("githubUsername", data.githubUsername || '');
+
+      // Clear all existing queries before upload
+      await queryClient.cancelQueries();
+      await queryClient.invalidateQueries();
 
       await uploadMutation.mutateAsync(formData);
     } catch (error) {
