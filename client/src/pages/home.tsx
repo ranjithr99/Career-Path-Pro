@@ -31,13 +31,7 @@ export default function Home() {
       // Reset form data
       reset();
 
-      // First cancel any ongoing queries
-      await queryClient.cancelQueries();
-
-      // Clear the entire cache
-      queryClient.clear();
-
-      // Invalidate and refetch all queries
+      // Invalidate all queries to ensure fresh data
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] }),
         queryClient.invalidateQueries({ queryKey: ["/api/resume-feedback/1"] }),
@@ -60,15 +54,9 @@ export default function Home() {
     }
   });
 
-  // Clear all cached data when component mounts or when route changes
+  // Clear all cached data when component mounts
   React.useEffect(() => {
-    const clearCache = async () => {
-      await queryClient.cancelQueries();
-      queryClient.clear();
-      queryClient.resetQueries();
-    };
-
-    clearCache();
+    queryClient.invalidateQueries();
   }, [queryClient]);
 
   const hasProfile = !!profile;
@@ -110,7 +98,6 @@ export default function Home() {
 
       // Clear all existing queries before upload
       await queryClient.cancelQueries();
-      queryClient.clear();
       await queryClient.invalidateQueries();
 
       await uploadMutation.mutateAsync(formData);
