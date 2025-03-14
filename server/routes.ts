@@ -381,7 +381,68 @@ ${JSON.stringify(profile, null, 2)}`;
     }
   });
 
-  // Update the LinkedIn events endpoint
+  // Add new resume feedback endpoint
+  app.get("/api/resume-feedback/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const profile = await storage.getCareerProfile(userId);
+
+      if (!profile) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+
+      const prompt = `You are a professional resume reviewer. Based on this resume text, provide detailed, constructive feedback for improvement. Focus on content, structure, and impact. Return only a JSON object with this structure:
+{
+  "overview": {
+    "strengths": string[],
+    "improvements": string[]
+  },
+  "sections": {
+    "summary": { "feedback": string, "suggestions": string[] },
+    "experience": { "feedback": string, "suggestions": string[] },
+    "skills": { "feedback": string, "suggestions": string[] },
+    "education": { "feedback": string, "suggestions": string[] }
+  },
+  "formatting": {
+    "issues": string[],
+    "recommendations": string[]
+  },
+  "impactScore": number
+}
+
+Resume Text:
+${profile.resumeText}`;
+
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.8,
+          maxOutputTokens: 2048,
+        },
+      });
+
+      const response = await result.response;
+      const text = response.text();
+
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("Failed to parse AI response as JSON");
+      }
+
+      const feedback = JSON.parse(jsonMatch[0]);
+      res.json(feedback);
+    } catch (error) {
+      console.error("Error generating resume feedback:", error);
+      res.status(500).json({
+        message: "Failed to generate resume feedback",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Update LinkedIn events endpoint to filter for future dates
   app.get("/api/linkedin-events/:userId", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
@@ -391,8 +452,9 @@ ${JSON.stringify(profile, null, 2)}`;
         return res.status(404).json({ message: "Profile not found" });
       }
 
-      // Generate comprehensive networking recommendations using Gemini
-      const prompt = `You are a professional career networking expert. Based on this profile, generate personalized networking recommendations in JSON format.
+      const currentDate = new Date().toISOString().split('T')[0];
+
+      const prompt = `You are a professional career networking expert. Based on this profile, generate personalized networking recommendations in JSON format. Only include events on or after ${currentDate}.
 
 Return only a JSON object with this exact structure, nothing else:
 {
@@ -456,7 +518,6 @@ Career Goals: ${JSON.stringify(profile.recommendations?.recommendedRoles || [])}
       const response = await result.response;
       const text = response.text();
 
-      // Extract JSON from the response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error("Failed to parse AI response as JSON");

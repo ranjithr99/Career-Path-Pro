@@ -102,9 +102,9 @@ export default function Home() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           {features.map((feature, index) => (
-            <Card key={index} className={`transition-all ${hasProfile ? 'bg-white' : 'bg-gray-50'}`}>
-              <CardContent className="p-6">
-                <div className="flex items-start gap-3">
+            <Card key={index} className={`transition-all min-h-[180px] ${hasProfile ? 'bg-white' : 'bg-gray-50'}`}>
+              <CardContent className="p-6 h-full flex flex-col">
+                <div className="flex items-start gap-3 flex-grow">
                   {hasProfile ? (
                     <CheckCircle className="h-6 w-6 text-green-500 mt-1" />
                   ) : (

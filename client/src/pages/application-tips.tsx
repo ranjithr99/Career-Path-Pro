@@ -1,52 +1,42 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   FileText, Github, Briefcase, CheckCircle, XCircle, Loader2, 
   Calendar, Linkedin, Users, TrendingUp, PenTool, Code, Clock,
-  BookOpen, Trophy, AlertTriangle
+  BookOpen, Trophy, AlertTriangle, Star
 } from "lucide-react";
 
-interface LinkedInEvent {
-  title: string;
-  date: string;
-  url: string;
-  type: string;
-}
+// ... (keep existing interfaces)
 
-interface PortfolioSuggestionProject {
-  title: string;
-  description: string;
-  timeEstimate: string;
-  technologies: string[];
-  learningOutcomes: string[];
-  implementation: {
-    features: string[];
-    challenges: string[];
+interface ResumeFeedback {
+  overview: {
+    strengths: string[];
+    improvements: string[];
   };
-}
-
-interface PortfolioSuggestion {
-  suggestedProjects: PortfolioSuggestionProject[];
-  skillGaps: {
-    skill: string;
-    projectType: string;
-    importance: string;
-  }[];
-}
-
-interface NetworkingResponse {
-  upcoming: { title: string; date: string; type: string; url: string; }[];
-  groups: { name: string; description: string; memberCount: string; relevance: string; }[];
-  influencers: { name: string; title: string; expertise: string[]; reason: string; }[];
-  trendingTopics: { topic: string; description: string; suggestedInteraction: string; }[];
-  contentIdeas: { title: string; description: string; targetAudience: string; expectedImpact: string; }[];
+  sections: {
+    summary: { feedback: string; suggestions: string[] };
+    experience: { feedback: string; suggestions: string[] };
+    skills: { feedback: string; suggestions: string[] };
+    education: { feedback: string; suggestions: string[] };
+  };
+  formatting: {
+    issues: string[];
+    recommendations: string[];
+  };
+  impactScore: number;
 }
 
 export default function ApplicationTips() {
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["/api/career-recommendations/1"],
+  });
+
+  const { data: resumeFeedback, isLoading: feedbackLoading, error: feedbackError } = useQuery<ResumeFeedback>({
+    queryKey: ["/api/resume-feedback/1"],
+    enabled: !!profile,
   });
 
   const { data: events, isLoading: eventsLoading, error: eventsError } = useQuery<NetworkingResponse>({
@@ -193,7 +183,7 @@ export default function ApplicationTips() {
     );
   };
 
-  if (profileLoading || suggestionsLoading) {
+  if (profileLoading || suggestionsLoading || feedbackLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -305,6 +295,124 @@ export default function ApplicationTips() {
   const resumeTips = profile ? generateResumeRecommendations() : defaultTips.resume;
   const networkingTips = profile ? generateNetworkingRecommendations() : defaultTips.networking;
 
+  const ResumeFeedbackSection = () => {
+    if (feedbackLoading) {
+      return (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto" />
+            <p className="mt-4 text-gray-600">Analyzing your resume...</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (feedbackError || !resumeFeedback) {
+      return (
+        <div className="text-center py-8">
+          <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto" />
+          <p className="mt-4 text-gray-600">Unable to load resume feedback. Please try again later.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Impact Score */}
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-medium flex items-center gap-2">
+              <Star className="h-5 w-5 text-blue-500" />
+              Resume Impact Score
+            </h3>
+            <span className="text-lg font-semibold text-blue-600">{resumeFeedback.impactScore}/100</span>
+          </div>
+          <Progress value={resumeFeedback.impactScore} className="h-2" />
+        </div>
+
+        {/* Overview Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-3">
+            <h3 className="font-medium flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              Strengths
+            </h3>
+            <ul className="space-y-2">
+              {resumeFeedback.overview.strengths.map((strength, index) => (
+                <li key={index} className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500 mt-1" />
+                  <span className="text-gray-700">{strength}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="font-medium flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Areas for Improvement
+            </h3>
+            <ul className="space-y-2">
+              {resumeFeedback.overview.improvements.map((improvement, index) => (
+                <li key={index} className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-500 mt-1" />
+                  <span className="text-gray-700">{improvement}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Detailed Section Feedback */}
+        <div className="space-y-6">
+          {Object.entries(resumeFeedback.sections).map(([section, feedback]) => (
+            <div key={section} className="border rounded-lg p-4">
+              <h3 className="font-medium capitalize mb-3">{section} Section</h3>
+              <p className="text-gray-700 mb-3">{feedback.feedback}</p>
+              <div className="space-y-2">
+                {feedback.suggestions.map((suggestion, index) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-blue-500 mt-1" />
+                    <span className="text-gray-700">{suggestion}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Formatting Guidelines */}
+        <div className="border rounded-lg p-4">
+          <h3 className="font-medium mb-3">Formatting & Structure</h3>
+          {resumeFeedback.formatting.issues.length > 0 && (
+            <div className="mb-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Issues to Address</h4>
+              <ul className="space-y-2">
+                {resumeFeedback.formatting.issues.map((issue, index) => (
+                  <li key={index} className="flex items-start gap-2">
+                    <XCircle className="h-4 w-4 text-red-500 mt-1" />
+                    <span className="text-gray-700">{issue}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Recommendations</h4>
+            <ul className="space-y-2">
+              {resumeFeedback.formatting.recommendations.map((rec, index) => (
+                <li key={index} className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500 mt-1" />
+                  <span className="text-gray-700">{rec}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-8">
       <div className="max-w-4xl mx-auto">
@@ -331,32 +439,8 @@ export default function ApplicationTips() {
           <TabsContent value="resume">
             <Card>
               <CardContent className="p-6">
-                <h2 className="text-xl font-semibold mb-4">Resume Optimization</h2>
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="font-medium mb-3">Personalized Improvements</h3>
-                    <div className="space-y-3">
-                      {resumeTips.improvements.map((item, index) => (
-                        <div key={index} className="flex items-start gap-3">
-                          <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                          <p className="text-gray-700">{item}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-medium mb-3">Suggested Removals</h3>
-                    <div className="space-y-3">
-                      {resumeTips.removals.map((item, index) => (
-                        <div key={index} className="flex items-start gap-3">
-                          <XCircle className="h-5 w-5 text-red-500 mt-0.5" />
-                          <p className="text-gray-700">{item}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                <h2 className="text-xl font-semibold mb-4">Resume Analysis</h2>
+                <ResumeFeedbackSection />
               </CardContent>
             </Card>
           </TabsContent>
