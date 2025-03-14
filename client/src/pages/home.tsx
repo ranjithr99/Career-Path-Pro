@@ -44,8 +44,14 @@ export default function Home() {
       // Reset form
       reset();
 
-      // Refetch profile data before navigation
-      await queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] });
+      // Force refetch all queries with new cache
+      await queryClient.resetQueries();
+
+      // Specifically invalidate and wait for career recommendations
+      await queryClient.invalidateQueries({ 
+        queryKey: ["/api/career-recommendations/1"],
+        refetchType: 'all'
+      });
 
       // Navigate to jobs page
       setLocation("/jobs");

@@ -14,6 +14,13 @@ function sanitizeJsonResponse(text: string): string {
     .trim();
 }
 
+// Modify the function to get the latest profile ID
+async function getLatestProfileId(): Promise<number> {
+  // For now, since we're using a fixed userId=1, we'll get the latest profile for that user
+  const profile = await storage.getLatestProfile(1);
+  return profile?.id || 1;
+}
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
@@ -203,13 +210,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/job-postings/:userId", async (req, res) => {
     const startTime = Date.now();
     try {
-      const userId = parseInt(req.params.userId);
+      // Get the latest profile ID
+      const profileId = await getLatestProfileId();
 
-      console.log(`Processing job postings request for user ${userId}`, {
+      console.log(`Processing job postings request for profile ${profileId}`, {
         hasApiKey: !!process.env.THEIRSTACK_API_KEY,
       });
 
-      const profile = await storage.getCareerProfile(userId);
+      const profile = await storage.getCareerProfile(profileId);
       if (!profile) {
         return res.status(404).json({ message: "Profile not found" });
       }
@@ -221,6 +229,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           totalJobs: result.jobs.length,
           totalResults: result.totalResults,
+          profileId
         },
       );
 
@@ -229,11 +238,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error fetching job postings:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      console.error(
-        `Job postings request failed after ${Date.now() - startTime}ms:`,
-        errorMessage,
-      );
-
       res.status(500).json({
         message: "Failed to fetch job postings",
         details: errorMessage,
@@ -329,8 +333,8 @@ ${resumeText}`;
 
   app.get("/api/career-recommendations/:userId", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
-      const profile = await storage.getCareerProfile(userId);
+      const profileId = await getLatestProfileId();
+      const profile = await storage.getCareerProfile(profileId);
 
       if (!profile) {
         return res.status(404).json({ message: "Profile not found" });
@@ -370,8 +374,8 @@ ${JSON.stringify(profile, null, 2)}`;
 
   app.get("/api/interview-prep/:userId", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
-      const profile = await storage.getCareerProfile(userId);
+      const profileId = await getLatestProfileId();
+      const profile = await storage.getCareerProfile(profileId);
 
       if (!profile) {
         return res.status(404).json({ message: "Profile not found" });
@@ -411,8 +415,8 @@ ${JSON.stringify(profile, null, 2)}`;
 
   app.get("/api/resume-feedback/:userId", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
-      const profile = await storage.getCareerProfile(userId);
+      const profileId = await getLatestProfileId();
+      const profile = await storage.getCareerProfile(profileId);
 
       if (!profile) {
         return res.status(404).json({ message: "Profile not found" });
@@ -478,8 +482,8 @@ ${profile.resumeText}`;
 
   app.get("/api/linkedin-events/:userId", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
-      const profile = await storage.getCareerProfile(userId);
+      const profileId = await getLatestProfileId();
+      const profile = await storage.getCareerProfile(profileId);
 
       if (!profile) {
         return res.status(404).json({ message: "Profile not found" });
@@ -586,8 +590,8 @@ Career Goals: ${JSON.stringify(profile.recommendations?.recommendedRoles || [])}
 
   app.get("/api/portfolio-suggestions/:userId", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
-      const profile = await storage.getCareerProfile(userId);
+      const profileId = await getLatestProfileId();
+      const profile = await storage.getCareerProfile(profileId);
 
       if (!profile) {
         return res.status(404).json({ message: "Profile not found" });
