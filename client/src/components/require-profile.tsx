@@ -13,8 +13,17 @@ export const withProfileRequired = (WrappedComponent: React.ComponentType) => {
       // Disable automatic background refetching
       refetchOnWindowFocus: false,
       refetchOnMount: false,
+      staleTime: 0, // Consider data immediately stale
+      cacheTime: 0, // Don't cache at all
       // Only fetch if we have a current session upload
-      enabled: localStorage.getItem('currentSessionUpload') === 'true'
+      enabled: localStorage.getItem('currentSessionUpload') === 'true',
+      // Add timestamp to force fresh request
+      queryFn: async () => {
+        const timestamp = Date.now();
+        const response = await fetch(`/api/career-recommendations/1?t=${timestamp}`);
+        if (!response.ok) throw new Error('Failed to fetch profile');
+        return response.json();
+      }
     });
 
     React.useEffect(() => {

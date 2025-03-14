@@ -31,6 +31,8 @@ export default function Home() {
     // Disable automatic background refetching
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    staleTime: 0, // Consider data immediately stale
+    cacheTime: 0, // Don't cache at all
     // Only fetch if we have a current session upload
     enabled: localStorage.getItem('currentSessionUpload') === 'true'
   });
