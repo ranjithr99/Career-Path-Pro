@@ -18,7 +18,7 @@ export default function Home() {
 
   // Clear all cached data when component mounts
   React.useEffect(() => {
-    queryClient.clear();
+    queryClient.clear(); // This removes all cached data
     localStorage.removeItem('hasProfile');
     localStorage.removeItem('currentSessionUpload');
   }, [queryClient]);
@@ -37,21 +37,12 @@ export default function Home() {
         description: "Career profile uploaded successfully",
       });
 
-      // Set session flags
-      localStorage.setItem('hasProfile', 'true');
-      localStorage.setItem('currentSessionUpload', 'true');
-
       // Reset form
       reset();
 
-      // Force refetch all queries with new cache
-      await queryClient.resetQueries();
-
-      // Specifically invalidate and wait for career recommendations
-      await queryClient.invalidateQueries({ 
-        queryKey: ["/api/career-recommendations/1"],
-        refetchType: 'all'
-      });
+      // Set profile indicator
+      localStorage.setItem('hasProfile', 'true');
+      localStorage.setItem('currentSessionUpload', 'true');
 
       // Navigate to jobs page
       setLocation("/jobs");
