@@ -400,11 +400,11 @@ ${JSON.stringify(profile, null, 2)}`;
       }
 
       const prompt = `You are a professional resume reviewer tasked with providing constructive feedback and a fair impact score. When calculating the impact score:
-- Start with a base score of 75
+- Start with a base score of 60
 - Add points for positive elements (skills matching industry standards, quantifiable achievements, clear progression)
 - Subtract points only for significant issues
-- The final score should typically fall between 65-95, with most resumes scoring 75-85
-- A score below 70 should only be given if there are major structural issues
+- The final score should typically fall between 50-95, with most resumes scoring 75-85
+- A score below 60 should only be given if there are major structural issues
 
 Based on this resume text, provide detailed, constructive feedback for improvement. Return only a JSON object with this structure:
 {
@@ -452,7 +452,7 @@ ${profile.resumeText}`;
       console.error("Error generating resume feedback:", error);
       res.status(500).json({
         message: "Failed to generate resume feedback",
-        details: error instanceof Error ? error.message : "Unknown error"
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
@@ -466,7 +466,7 @@ ${profile.resumeText}`;
         return res.status(404).json({ message: "Profile not found" });
       }
 
-      const currentDate = new Date().toISOString().split('T')[0];
+      const currentDate = new Date().toISOString().split("T")[0];
 
       const prompt = `You are a professional career networking expert. Based on this profile, generate personalized networking recommendations in JSON format. Only include events on or after ${currentDate}.
 
@@ -541,9 +541,13 @@ Career Goals: ${JSON.stringify(profile.recommendations?.recommendedRoles || [])}
         const parsedRecommendations = JSON.parse(jsonMatch[0]);
 
         // Validate the response structure
-        if (!parsedRecommendations.upcoming || !parsedRecommendations.groups || 
-            !parsedRecommendations.influencers || !parsedRecommendations.trendingTopics || 
-            !parsedRecommendations.contentIdeas) {
+        if (
+          !parsedRecommendations.upcoming ||
+          !parsedRecommendations.groups ||
+          !parsedRecommendations.influencers ||
+          !parsedRecommendations.trendingTopics ||
+          !parsedRecommendations.contentIdeas
+        ) {
           throw new Error("Invalid response structure");
         }
 
@@ -556,7 +560,7 @@ Career Goals: ${JSON.stringify(profile.recommendations?.recommendedRoles || [])}
       console.error("Error generating networking recommendations:", error);
       res.status(500).json({
         message: "Failed to generate networking recommendations",
-        details: error instanceof Error ? error.message : "Unknown error"
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
@@ -623,15 +627,21 @@ Profile Details:
         const parsedSuggestions = JSON.parse(jsonMatch[0]);
 
         // Validate the response structure
-        if (!parsedSuggestions.suggestedProjects || !parsedSuggestions.skillGaps) {
+        if (
+          !parsedSuggestions.suggestedProjects ||
+          !parsedSuggestions.skillGaps
+        ) {
           throw new Error("Invalid response structure");
         }
 
         // Add recommended role context to each project
-        parsedSuggestions.suggestedProjects = parsedSuggestions.suggestedProjects.map(project => ({
-          ...project,
-          targetRole: profile.recommendations?.recommendedRoles?.[0]?.title || "Software Engineer"
-        }));
+        parsedSuggestions.suggestedProjects =
+          parsedSuggestions.suggestedProjects.map((project) => ({
+            ...project,
+            targetRole:
+              profile.recommendations?.recommendedRoles?.[0]?.title ||
+              "Software Engineer",
+          }));
 
         res.json(parsedSuggestions);
       } catch (error) {
@@ -642,7 +652,7 @@ Profile Details:
       console.error("Error generating portfolio suggestions:", error);
       res.status(500).json({
         message: "Failed to generate portfolio suggestions",
-        details: error instanceof Error ? error.message : "Unknown error"
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });

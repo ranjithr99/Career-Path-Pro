@@ -8,6 +8,7 @@ import {
   Calendar, Linkedin, Users, TrendingUp, PenTool, Code, Clock,
   BookOpen, Trophy, AlertTriangle, Star
 } from "lucide-react";
+import { withProfileRequired } from '@/components/require-profile';
 
 // ... (keep existing interfaces)
 
@@ -29,7 +30,9 @@ interface ResumeFeedback {
   impactScore: number;
 }
 
-export default function ApplicationTips() {
+export default withProfileRequired(ApplicationTips);
+
+function ApplicationTips() {
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["/api/career-recommendations/1"],
   });

@@ -16,6 +16,12 @@ export default function Home() {
   const selectedFile = watch("resume");
   const queryClient = useQueryClient();
 
+  // Clear all query cache when component mounts (page load/refresh)
+  React.useEffect(() => {
+    queryClient.clear(); // This removes all cached data
+    localStorage.removeItem('hasProfile'); // Clear profile indicator
+  }, [queryClient]);
+
   const { data: profile } = useQuery({
     queryKey: ["/api/career-recommendations/1"], // TODO: Get user ID from auth
   });
@@ -32,6 +38,9 @@ export default function Home() {
 
       // Reset form
       reset();
+
+      // Set profile indicator
+      localStorage.setItem('hasProfile', 'true');
 
       // Invalidate and refetch career recommendations
       await queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] });
