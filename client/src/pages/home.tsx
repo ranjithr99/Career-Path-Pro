@@ -22,10 +22,7 @@ export default function Home() {
 
   // Function to clear all application state
   const clearApplicationState = async () => {
-    console.log("Clearing all application state...");
-
-    // Reset form data
-    reset();
+    console.log("Clearing application state...");
 
     // Cancel any ongoing queries
     await queryClient.cancelQueries();
@@ -52,7 +49,7 @@ export default function Home() {
   const uploadMutation = useMutation({
     mutationFn: uploadCareerProfile,
     onSuccess: async () => {
-      console.log("Resume upload successful, initializing cleanup...");
+      console.log("Resume upload successful");
 
       toast({
         title: "Success",
@@ -61,6 +58,9 @@ export default function Home() {
 
       // Clear all existing application state
       await clearApplicationState();
+
+      // Reset form only after successful upload and state clearing
+      reset();
 
       // Wait for a brief moment to ensure data is available
       setTimeout(() => setLocation("/jobs"), 1000);
@@ -75,9 +75,14 @@ export default function Home() {
     }
   });
 
-  // Clear all cached data when component mounts
+  // Clear all cached data when component mounts, but don't reset form
   React.useEffect(() => {
-    clearApplicationState();
+    const initializeState = async () => {
+      await queryClient.cancelQueries();
+      await queryClient.removeQueries();
+      await queryClient.invalidateQueries();
+    };
+    initializeState();
   }, [queryClient]);
 
   const hasProfile = !!profile;
@@ -112,17 +117,13 @@ export default function Home() {
         return;
       }
 
-      console.log("New resume upload initiated, preparing to clear existing data...");
-
-      // Clear existing application state before processing new upload
-      await clearApplicationState();
+      console.log("New resume upload initiated");
 
       const formData = new FormData();
       formData.append("resume", data.resume[0]);
       formData.append("linkedinUrl", data.linkedinUrl || '');
       formData.append("githubUsername", data.githubUsername || '');
 
-      console.log("Proceeding with new resume upload...");
       await uploadMutation.mutateAsync(formData);
     } catch (error) {
       console.error("Upload error:", error);
