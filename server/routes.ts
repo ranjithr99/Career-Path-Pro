@@ -257,6 +257,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         length: resumeText.length,
       });
 
+      // Get existing profile (if any)
+      const userId = 1; // TODO: Get from auth
+      const existingProfile = await storage.getCareerProfile(userId);
+
+      if (existingProfile) {
+        console.log("Found existing profile, will be replaced", {
+          profileId: existingProfile.id,
+        });
+      }
+
       // Analyze resume using Gemini
       const prompt = `Analyze the following resume and extract skills, experience, and education. Return only a JSON object with the following structure, nothing else: { "skills": string[], "experience": { "title": string, "company": string, "duration": string, "description": string[] }[], "education": { "degree": string, "institution": string, "year": string }[] }
 Resume text:
@@ -277,7 +287,7 @@ ${resumeText}`;
 
       // Create or update career profile
       const profile = await storage.createCareerProfile({
-        userId: 1, // TODO: Get from auth
+        userId,
         resumeText,
         linkedinUrl,
         githubUsername,
@@ -286,9 +296,11 @@ ${resumeText}`;
         education: parsedAnalysis.education,
       });
 
-      console.log("Successfully created career profile", {
+      console.log("Successfully created/updated career profile", {
         profileId: profile.id,
+        isNew: !existingProfile,
       });
+
       res.json(profile);
     } catch (error) {
       console.error("Error processing career profile:", error);
