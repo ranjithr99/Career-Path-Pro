@@ -16,14 +16,20 @@ export default function Home() {
   const selectedFile = watch("resume");
   const queryClient = useQueryClient();
 
-  // Clear all query cache when component mounts (page load/refresh)
+  // Clear all query cache and session flags when component mounts (page load/refresh)
   React.useEffect(() => {
-    queryClient.clear(); // This removes all cached data
-    localStorage.removeItem('hasProfile'); // Clear profile indicator
+    // Clear all cached data
+    queryClient.clear();
+
+    // Clear all profile-related flags
+    localStorage.removeItem('hasProfile');
+    localStorage.removeItem('currentSessionUpload');
+
+    console.log('Application state reset on page load');
   }, [queryClient]);
 
   const { data: profile } = useQuery({
-    queryKey: ["/api/career-recommendations/1"], // TODO: Get user ID from auth
+    queryKey: ["/api/career-recommendations/1"],
   });
 
   const uploadMutation = useMutation({
@@ -39,8 +45,9 @@ export default function Home() {
       // Reset form
       reset();
 
-      // Set profile indicator
+      // Set both profile indicator and current session upload flag
       localStorage.setItem('hasProfile', 'true');
+      localStorage.setItem('currentSessionUpload', 'true');
 
       // Invalidate and refetch career recommendations
       await queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] });
@@ -58,7 +65,7 @@ export default function Home() {
     }
   });
 
-  const hasProfile = !!profile;
+  const hasProfile = !!profile && localStorage.getItem('currentSessionUpload') === 'true';
 
   const features = [
     {
