@@ -10,6 +10,11 @@ export const withProfileRequired = (WrappedComponent: React.ComponentType) => {
     // Check both the profile data and the current session upload status
     const { data: profile, isLoading } = useQuery({
       queryKey: ["/api/career-recommendations/1"],
+      // Disable automatic background refetching
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      // Only fetch if we have a current session upload
+      enabled: localStorage.getItem('currentSessionUpload') === 'true'
     });
 
     React.useEffect(() => {

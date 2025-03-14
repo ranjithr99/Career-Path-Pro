@@ -18,13 +18,21 @@ export default function Home() {
 
   // Clear all cached data when component mounts
   React.useEffect(() => {
-    queryClient.clear();
+    queryClient.clear(); // This removes all cached data
     localStorage.removeItem('hasProfile');
     localStorage.removeItem('currentSessionUpload');
+
+    // Force immediate cache invalidation for all endpoints
+    queryClient.invalidateQueries();
   }, [queryClient]);
 
   const { data: profile } = useQuery({
     queryKey: ["/api/career-recommendations/1"],
+    // Disable automatic background refetching
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    // Only fetch if we have a current session upload
+    enabled: localStorage.getItem('currentSessionUpload') === 'true'
   });
 
   const uploadMutation = useMutation({
@@ -37,14 +45,14 @@ export default function Home() {
         description: "Career profile uploaded successfully",
       });
 
-      // Set session flags
-      localStorage.setItem('hasProfile', 'true');
-      localStorage.setItem('currentSessionUpload', 'true');
-
       // Reset form
       reset();
 
-      // Refetch profile data before navigation
+      // Set session flags only after successful upload
+      localStorage.setItem('hasProfile', 'true');
+      localStorage.setItem('currentSessionUpload', 'true');
+
+      // Force refetch of profile data before navigation
       await queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] });
 
       // Navigate to jobs page
