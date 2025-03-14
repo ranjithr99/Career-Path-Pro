@@ -257,10 +257,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         length: resumeText.length,
       });
 
-      // Clear existing profile data for this user
-      // Note: In a real app, you'd want to archive the old data instead of just replacing it
-      await storage.deleteCareerProfile(1); // TODO: Get from auth
-
       // Analyze resume using Gemini
       const prompt = `Analyze the following resume and extract skills, experience, and education. Return only a JSON object with the following structure, nothing else: { "skills": string[], "experience": { "title": string, "company": string, "duration": string, "description": string[] }[], "education": { "degree": string, "institution": string, "year": string }[] }
 Resume text:
@@ -279,7 +275,7 @@ ${resumeText}`;
       const parsedAnalysis = JSON.parse(jsonMatch[0]);
       console.log("Successfully analyzed resume with Gemini");
 
-      // Create new career profile
+      // Create or update career profile
       const profile = await storage.createCareerProfile({
         userId: 1, // TODO: Get from auth
         resumeText,
