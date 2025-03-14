@@ -40,9 +40,15 @@ export default function Home() {
       // Reset form
       reset();
 
-      // Set profile indicator
+      // Set profile indicators
       localStorage.setItem('hasProfile', 'true');
       localStorage.setItem('currentSessionUpload', 'true');
+
+      // Wait for a brief moment to ensure data is processed
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Invalidate queries to ensure fresh data
+      await queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] });
 
       // Navigate to jobs page
       setLocation("/jobs");
