@@ -2,7 +2,7 @@ services:
   - type: web
     name: careerpathpro
     env: node
-    buildCommand: npm install && npm run build
+    buildCommand: chmod +x build.sh && ./build.sh
     startCommand: npm run prod
     envVars:
       - key: NODE_ENV

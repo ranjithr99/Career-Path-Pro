@@ -8,7 +8,7 @@
     "client": "vite client",
     "server": "tsx server/index.ts",
     "start": "npm run dev",
-    "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "build": "npm run build:client && npm run build:server",
     "build:client": "vite build",
     "build:server": "esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "prod": "NODE_ENV=production node dist/index.js",

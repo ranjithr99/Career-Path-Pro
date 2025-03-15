@@ -26,7 +26,7 @@ export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
-    allowedHosts: true,
+    allowedHosts: true as const,
   };
 
   const vite = await createViteServer({
@@ -71,16 +71,32 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "public");
-
+  // In production on Render.com, the build output is in the dist directory at the project root
+  // Use path.join with .. to navigate up from the current directory
+  const distPath = path.resolve(process.cwd(), "dist", "client");
+  
   if (!fs.existsSync(distPath)) {
-    throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
-    );
+    // Fallback to the original path if the new path doesn't exist
+    const fallbackPath = path.resolve(__dirname, "public");
+    
+    if (!fs.existsSync(fallbackPath)) {
+      throw new Error(
+        `Could not find the build directory at ${distPath} or ${fallbackPath}, make sure to build the client first`,
+      );
+    }
+    
+    app.use(express.static(fallbackPath));
+    
+    // fall through to index.html if the file doesn't exist
+    app.use("*", (_req, res) => {
+      res.sendFile(path.resolve(fallbackPath, "index.html"));
+    });
+    
+    return;
   }
-
+  
   app.use(express.static(distPath));
-
+  
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
