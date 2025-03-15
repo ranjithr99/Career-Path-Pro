@@ -22,6 +22,11 @@ export default defineConfig({
         ]
       : []),
   ],
+  server: {
+    port: 3000,
+    strictPort: true,
+    host: 'localhost',
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "client", "src"),

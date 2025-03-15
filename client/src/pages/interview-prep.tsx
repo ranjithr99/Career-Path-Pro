@@ -8,8 +8,9 @@ import {
   AlertTriangle,
   CheckCircle 
 } from "lucide-react";
+import { withProfileRequired } from '@/components/require-profile';
 
-export default function InterviewPrep() {
+function InterviewPrep() {
   const { data: profile, isLoading, error } = useQuery({
     queryKey: ["/api/interview-prep/1"],
   });
@@ -126,3 +127,5 @@ export default function InterviewPrep() {
     </div>
   );
 }
+
+export default withProfileRequired(InterviewPrep);

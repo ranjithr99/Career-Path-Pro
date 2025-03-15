@@ -5,6 +5,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import multer from "multer";
 import { insertCareerProfileSchema } from "@shared/schema";
 import axios from "axios";
+import { apiKeys } from "./config";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -12,7 +13,7 @@ const upload = multer({
 });
 
 // Initialize Google AI with Gemini model
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
+const genAI = new GoogleGenerativeAI(apiKeys.google);
 const model = genAI.getGenerativeModel({
   model: "gemini-2.0-flash",
   safetySettings: [
@@ -27,7 +28,7 @@ const model = genAI.getGenerativeModel({
 const THEIRSTACK_API_URL = "https://api.theirstack.com/v1/jobs/search";
 
 // Verify API key is loaded
-if (!process.env.THEIRSTACK_API_KEY) {
+if (!apiKeys.theirstack) {
   console.error(
     "THEIRSTACK_API_KEY is not set. Job search functionality will not work.",
   );
@@ -65,7 +66,7 @@ async function fetchJobPostings(profile: any) {
             },
             {
               headers: {
-                Authorization: `Bearer ${process.env.THEIRSTACK_API_KEY}`,
+                Authorization: `Bearer ${apiKeys.theirstack}`,
                 "Content-Type": "application/json",
               },
               timeout: 10000, // 10 second timeout
@@ -192,13 +193,36 @@ function calculateSkillMatch(
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Session initialization endpoint - clears previous resume data on page load
+  app.post("/api/init-session", async (req, res) => {
+    try {
+      const userId = 1; // TODO: Get from auth when implemented
+      
+      console.log(`Initializing session for user ${userId}`);
+      
+      // Clear any existing career profile data for this user
+      await storage.clearCareerProfile(userId);
+      
+      res.json({ 
+        message: "Session initialized successfully",
+        userId
+      });
+    } catch (error) {
+      console.error("Error initializing session:", error);
+      res.status(500).json({
+        message: "Failed to initialize session",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   app.get("/api/job-postings/:userId", async (req, res) => {
     const startTime = Date.now();
     try {
       const userId = parseInt(req.params.userId);
 
       console.log(`Processing job postings request for user ${userId}`, {
-        hasApiKey: !!process.env.THEIRSTACK_API_KEY,
+        hasApiKey: !!apiKeys.theirstack,
       });
 
       const profile = await storage.getCareerProfile(userId);
@@ -256,13 +280,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get existing profile (if any)
       const userId = 1; // TODO: Get from auth
-      const existingProfile = await storage.getCareerProfile(userId);
-
-      if (existingProfile) {
-        console.log("Found existing profile, will be replaced", {
-          profileId: existingProfile.id,
-        });
-      }
+      
+      // Clear any existing career profile data for this user
+      // This ensures all features will use the new resume profile
+      await storage.clearCareerProfile(userId);
 
       // Analyze resume using Gemini
       const prompt = `Analyze the following resume and extract skills, experience, and education. Return only a JSON object with the following structure, nothing else: { "skills": string[], "experience": { "title": string, "company": string, "duration": string, "description": string[] }[], "education": { "degree": string, "institution": string, "year": string }[] }
@@ -282,7 +303,7 @@ ${resumeText}`;
       const parsedAnalysis = JSON.parse(jsonMatch[0]);
       console.log("Successfully analyzed resume with Gemini");
 
-      // Create or update career profile
+      // Create career profile
       const profile = await storage.createCareerProfile({
         userId,
         resumeText,
@@ -293,9 +314,8 @@ ${resumeText}`;
         education: parsedAnalysis.education,
       });
 
-      console.log("Successfully created/updated career profile", {
+      console.log("Successfully created career profile", {
         profileId: profile.id,
-        isNew: !existingProfile,
       });
 
       res.json(profile);

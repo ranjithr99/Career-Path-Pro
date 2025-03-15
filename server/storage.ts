@@ -7,6 +7,7 @@ export interface IStorage {
   getCareerProfile(userId: number): Promise<CareerProfile | undefined>;
   createCareerProfile(profile: InsertCareerProfile): Promise<CareerProfile>;
   updateCareerProfile(id: number, profile: Partial<CareerProfile>): Promise<CareerProfile>;
+  clearCareerProfile(userId: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -46,6 +47,9 @@ export class MemStorage implements IStorage {
   }
 
   async createCareerProfile(profile: InsertCareerProfile): Promise<CareerProfile> {
+    // First, clear any existing profile for this user
+    await this.clearCareerProfile(profile.userId || 0);
+    
     const id = this.currentProfileId++;
     const newProfile = {
       id,
@@ -73,6 +77,19 @@ export class MemStorage implements IStorage {
     const updatedProfile = { ...existingProfile, ...profile } satisfies CareerProfile;
     this.careerProfiles.set(id, updatedProfile);
     return updatedProfile;
+  }
+  
+  async clearCareerProfile(userId: number): Promise<void> {
+    // Find all profiles for this user
+    const profilesForUser = Array.from(this.careerProfiles.entries())
+      .filter(([_, profile]) => profile.userId === userId);
+    
+    // Delete each profile
+    for (const [id, _] of profilesForUser) {
+      this.careerProfiles.delete(id);
+    }
+    
+    console.log(`Cleared ${profilesForUser.length} career profiles for user ${userId}`);
   }
 }
 

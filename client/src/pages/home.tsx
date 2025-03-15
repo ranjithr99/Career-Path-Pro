@@ -8,6 +8,8 @@ import { Upload, Github, Linkedin, Lock, CheckCircle, Loader2 } from "lucide-rea
 import { useLocation } from "wouter";
 import { uploadCareerProfile } from "@/lib/openai";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
+import { refreshAllProfileData } from "@/lib/queryClient";
 
 export default function Home() {
   const { register, handleSubmit, formState: { errors }, watch, reset } = useForm();
@@ -16,10 +18,22 @@ export default function Home() {
   const selectedFile = watch("resume");
   const queryClient = useQueryClient();
 
-  // Clear all query cache when component mounts (page load/refresh)
+  // Initialize session when component mounts (page load/refresh)
   React.useEffect(() => {
-    queryClient.clear(); // This removes all cached data
-    localStorage.removeItem('hasProfile'); // Clear profile indicator
+    const initSession = async () => {
+      try {
+        await axios.post("/api/init-session");
+        console.log("Session initialized on home page load");
+        
+        // Clear all cached data and invalidate queries
+        queryClient.clear();
+        queryClient.invalidateQueries();
+      } catch (error) {
+        console.error("Failed to initialize session:", error);
+      }
+    };
+    
+    initSession();
   }, [queryClient]);
 
   const { data: profile } = useQuery({
@@ -39,14 +53,23 @@ export default function Home() {
       // Reset form
       reset();
 
-      // Set profile indicator
-      localStorage.setItem('hasProfile', 'true');
-
-      // Invalidate and refetch career recommendations
-      await queryClient.invalidateQueries({ queryKey: ["/api/career-recommendations/1"] });
-
-      // Navigate to jobs page
-      setLocation("/jobs");
+      try {
+        // Refresh all profile-related data
+        await refreshAllProfileData(queryClient);
+        
+        // After data is loaded, navigate to jobs page
+        console.log("Data loaded successfully, navigating to jobs page");
+        setLocation("/jobs");
+      } catch (error) {
+        console.error("Error fetching data after upload:", error);
+        toast({
+          title: "Warning",
+          description: "Profile created but had trouble loading job data. Please try refreshing.",
+          variant: "destructive",
+        });
+        // Still navigate to jobs page even if there's an error
+        setLocation("/jobs");
+      }
     },
     onError: (error) => {
       console.error("Upload error:", error);
@@ -88,6 +111,18 @@ export default function Home() {
           variant: "destructive",
         });
         return;
+      }
+
+      // Initialize session before uploading to clear previous data
+      try {
+        await axios.post("/api/init-session");
+        console.log("Session initialized before upload");
+        
+        // Clear all cached data and invalidate queries
+        queryClient.clear();
+        queryClient.invalidateQueries();
+      } catch (error) {
+        console.error("Failed to initialize session before upload:", error);
       }
 
       const formData = new FormData();

@@ -22,6 +22,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { withProfileRequired } from '@/components/require-profile';
 
 interface RecommendedRole {
   title: string;
@@ -51,7 +52,7 @@ interface JobResponse {
   totalResults: number;
 }
 
-export default function Jobs() {
+function Jobs() {
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["/api/career-recommendations/1"],
   });
@@ -61,12 +62,12 @@ export default function Jobs() {
     enabled: !!profile,
   });
 
-  if (profileLoading) {
+  if (profileLoading || jobsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-blue-500 mx-auto" />
-          <p className="mt-4 text-gray-600">Loading your profile...</p>
+          <p className="mt-4 text-gray-600">Loading job recommendations...</p>
         </div>
       </div>
     );
@@ -321,3 +322,5 @@ export default function Jobs() {
     </div>
   );
 }
+
+export default withProfileRequired(Jobs);

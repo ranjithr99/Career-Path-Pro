@@ -37,22 +37,47 @@ function ApplicationTips() {
     queryKey: ["/api/career-recommendations/1"],
   });
 
-  const { data: resumeFeedback, isLoading: feedbackLoading, error: feedbackError } = useQuery<ResumeFeedback>({
+  const { data: resumeFeedback, isLoading: feedbackLoading, error: feedbackError, refetch: refetchFeedback } = useQuery<ResumeFeedback>({
     queryKey: ["/api/resume-feedback/1"],
     enabled: !!profile,
+    retry: 3,
+    retryDelay: 1000,
   });
 
-  const { data: events, isLoading: eventsLoading, error: eventsError } = useQuery<NetworkingResponse>({
+  const { data: events, isLoading: eventsLoading, error: eventsError, refetch: refetchEvents } = useQuery<NetworkingResponse>({
     queryKey: ["/api/linkedin-events/1"],
     enabled: !!profile,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     retry: 3, // Retry failed requests 3 times
   });
 
-  const { data: portfolioSuggestions, isLoading: suggestionsLoading } = useQuery({
+  const { data: portfolioSuggestions, isLoading: suggestionsLoading, error: suggestionsError, refetch: refetchPortfolio } = useQuery({
     queryKey: ["/api/portfolio-suggestions/1"],
     enabled: !!profile,
+    retry: 3,
+    retryDelay: 1000,
   });
+
+  // Attempt to refetch data if needed
+  React.useEffect(() => {
+    if (profile && !profileLoading) {
+      // If we have a profile but any of the dependent queries failed, try to refetch them
+      if (feedbackError) {
+        console.log("Resume feedback failed, attempting to refetch");
+        refetchFeedback();
+      }
+      
+      if (eventsError) {
+        console.log("LinkedIn events failed, attempting to refetch");
+        refetchEvents();
+      }
+      
+      if (suggestionsError) {
+        console.log("Portfolio suggestions failed, attempting to refetch");
+        refetchPortfolio();
+      }
+    }
+  }, [profile, profileLoading, feedbackError, eventsError, suggestionsError, refetchFeedback, refetchEvents, refetchPortfolio]);
 
   const NetworkingSectionLoader = () => (
     <div className="flex items-center justify-center py-8">
