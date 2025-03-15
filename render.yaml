@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: careerpathpro
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm run prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: THEIRSTACK_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false 

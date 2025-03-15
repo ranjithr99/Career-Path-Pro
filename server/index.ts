@@ -61,7 +61,6 @@ app.use((req, res, next) => {
   const port = appConfig.port;
   server.listen({
     port,
-    host: "localhost",
   }, () => {
     log(`serving on port ${port}`);
   });
